@@ -1,16 +1,16 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { X, Zap, Repeat, Target, Clock, BookOpen, Sparkles } from 'lucide-react';
-import { Habit, HabitType, Objective } from '../types';
+import { Habit, HabitType } from '../types';
 import { cn } from '../utils';
 import { GoogleGenAI } from "@google/genai";
+import { useObjectiveStore } from '../store/useObjectiveStore';
+import { useUserStore } from '../store/useUserStore';
 
 interface HabitModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (habit: Omit<Habit, 'id' | 'isActive' | 'createdAt'>) => void;
   habitToEdit?: Habit;
-  objectives: Objective[];
-  userLevel: number;
 }
 
 const COLORS = [
@@ -36,7 +36,9 @@ const FREQUENCIES = [
   { value: 'everyXdays:2', label: 'Cada 2 días' },
 ];
 
-export function HabitModal({ isOpen, onClose, onSave, habitToEdit, objectives, userLevel }: HabitModalProps) {
+export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalProps) {
+  const objectives = useObjectiveStore(state => state.objectives);
+  const userLevel = useUserStore(state => state.stats.level);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('daily');
@@ -50,10 +52,15 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit, objectives, u
   const [isSuggesting, setIsSuggesting] = useState(false);
 
   const suggestWithAI = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !navigator.onLine) return;
     setIsSuggesting(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setIsSuggesting(false);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Sugiere configuración para un hábito llamado "${name}". 
@@ -164,7 +171,7 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit, objectives, u
               <label htmlFor="name" className="block text-xs font-bold uppercase tracking-widest text-text-muted">
                 Nombre del Hábito
               </label>
-              {name.trim() && !habitToEdit && (
+              {name.trim() && !habitToEdit && navigator.onLine && (
                 <button
                   type="button"
                   onClick={suggestWithAI}

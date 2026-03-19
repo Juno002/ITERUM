@@ -1,23 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Sparkles, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
-import { DayClosure, Task, Habit, HabitLog } from '../types';
+import { DayClosure } from '../types';
 import { cn } from '../utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { format } from 'date-fns';
+import { useTaskStore } from '../store/useTaskStore';
+import { useHabitStore } from '../store/useHabitStore';
 
 interface CloseDayModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<DayClosure | null>;
-  tasks: Task[];
-  habits: Habit[];
-  logs: HabitLog[];
 }
 
-export function CloseDayModal({ isOpen, onClose, onConfirm, tasks, habits, logs }: CloseDayModalProps) {
+export function CloseDayModal({ isOpen, onClose, onConfirm }: CloseDayModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [closure, setClosure] = useState<DayClosure | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const tasks = useTaskStore(state => state.tasks);
+  const habits = useHabitStore(state => state.habits);
+  const logs = useHabitStore(state => state.logs);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todayTasks = tasks.filter(t => format(t.date, 'yyyy-MM-dd') === todayStr);
@@ -128,12 +131,12 @@ export function CloseDayModal({ isOpen, onClose, onConfirm, tasks, habits, logs 
                 {isClosing ? (
                   <>
                     <div className="w-5 h-5 border-2 border-bg-primary border-t-transparent rounded-full animate-spin" />
-                    Generando resumen IA...
+                    {navigator.onLine ? 'Generando resumen IA...' : 'Cerrando día...'}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5" />
-                    Cerrar Día con IA
+                    {navigator.onLine ? <Sparkles className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+                    {navigator.onLine ? 'Cerrar Día con IA' : 'Cerrar Día (Offline)'}
                   </>
                 )}
               </button>

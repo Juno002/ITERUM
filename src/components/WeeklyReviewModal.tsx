@@ -5,15 +5,32 @@ import { WeeklyInsight } from '../types';
 import { cn } from '../utils';
 import ReactMarkdown from 'react-markdown';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useHabitStore } from '../store/useHabitStore';
+import { subDays, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface WeeklyReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   insight: WeeklyInsight;
-  dailyStats: { day: string; rate: number }[];
 }
 
-export function WeeklyReviewModal({ isOpen, onClose, insight, dailyStats }: WeeklyReviewModalProps) {
+export function WeeklyReviewModal({ isOpen, onClose, insight }: WeeklyReviewModalProps) {
+  const habits = useHabitStore(state => state.habits);
+  const logs = useHabitStore(state => state.logs);
+
+  const dailyStats = Array.from({ length: 7 }, (_, i) => {
+    const date = subDays(new Date(), 6 - i);
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayLogs = logs.filter(l => l.date === dateStr);
+    const activeHabitsCount = habits.filter(h => h.isActive).length;
+    const rate = activeHabitsCount > 0 ? dayLogs.length / activeHabitsCount : 0;
+    return {
+      day: format(date, 'EEE', { locale: es }),
+      rate: Math.min(rate, 1)
+    };
+  });
+
   if (!isOpen) return null;
 
   return (

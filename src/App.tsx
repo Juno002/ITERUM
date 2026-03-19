@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { 
   Calendar as CalendarIcon, 
@@ -6,22 +6,26 @@ import {
   Plus, 
   Sparkles, 
   Search, 
-  Moon, 
-  Sun, 
   Target, 
   Zap, 
   BookOpen,
   Archive as ArchiveIcon,
   ChevronRight,
   Repeat,
-  Flame
+  Flame,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useTasks } from './hooks/useTasks';
 import { useHabits } from './hooks/useHabits';
 import { useObjectives } from './hooks/useObjectives';
 import { useDayClosure } from './hooks/useDayClosure';
 import { useGamification } from './hooks/useGamification';
-import { ViewMode, Task, Habit, Objective, WeeklyInsight } from './types';
+import { useSync } from './hooks/useSync';
+import { useWeeklyInsight } from './hooks/useWeeklyInsight';
+import { useUIStore } from './store/useUIStore';
+import { useTheme } from './context/ThemeContext';
+import { Task, Habit, Objective, ViewMode } from './types';
 import { cn } from './utils';
 import { shouldHabitOccurOnDate, calculateObjectiveProgress } from './utils/habitUtils';
 import { ListView } from './components/ListView';
@@ -41,22 +45,17 @@ import confetti from 'canvas-confetti';
 import { soundManager } from './utils/sounds';
 
 import { WeeklyReviewModal } from './components/WeeklyReviewModal';
-import { WeeklyInsightService } from './services/WeeklyInsightService';
 import { AIInsightBanner } from './components/AIInsightBanner';
 import { es } from 'date-fns/locale';
 import { subDays } from 'date-fns';
-import { SyncService } from './services/supabase';
 
 export default function App() {
-  const [toast, setToast] = useState<{ isOpen: boolean; title: string; message: string }>({
-    isOpen: false,
-    title: '',
-    message: ''
-  });
-
-  const [weeklyInsight, setWeeklyInsight] = useState<WeeklyInsight | null>(null);
-  const [isWeeklyReviewOpen, setIsWeeklyReviewOpen] = useState(false);
-  const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
+  const { 
+    viewMode, setViewMode, 
+    isFocusMode, setIsFocusMode, 
+    toast, setToast, closeToast 
+  } = useUIStore();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLevelUp = (level: number) => {
     soundManager.playSuccess();
@@ -73,168 +72,31 @@ export default function App() {
     });
   };
 
-  const { tasks, addTask, updateTask, deleteTask, toggleTask, setTasks } = useTasks();
-  const { habits, logs, addHabit, updateHabit, deleteHabit, toggleHabitLog: _toggleHabitLog, setHabits, setLogs } = useHabits();
-  const { objectives, addObjective, updateObjective, deleteObjective, setObjectives } = useObjectives();
-  const { closedDays, isDayClosed, closeDay, calculateStreak, setClosedDays, weeklyInsights, addWeeklyInsight, setWeeklyInsights } = useDayClosure();
-  const { stats, addExp, completeOnboarding, setStats } = useGamification({ onLevelUp: handleLevelUp });
+  const { tasks, addTask, updateTask, deleteTask, toggleTask } = useTasks();
+  const { habits, logs, addHabit, updateHabit, toggleHabitLog: _toggleHabitLog } = useHabits();
+  const { objectives, addObjective, updateObjective } = useObjectives();
+  const { closedDays, isDayClosed, closeDay, calculateStreak, weeklyInsights } = useDayClosure();
+  const { stats, addExp, completeOnboarding } = useGamification({ onLevelUp: handleLevelUp });
+  const { isSyncing, isRestoring, handleSync, handleRestore } = useSync();
+  const { 
+    isGeneratingInsight, 
+    weeklyInsight, 
+    setWeeklyInsight, 
+    isWeeklyReviewOpen, 
+    setIsWeeklyReviewOpen, 
+    generateWeeklyInsight 
+  } = useWeeklyInsight();
 
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-
-  // Unique User ID management
-  const [userId] = useState(() => {
-    const saved = localStorage.getItem('iterum_user_id');
-    if (saved) return saved;
-    const newId = `user_${crypto.randomUUID()}`;
-    localStorage.setItem('iterum_user_id', newId);
-    return newId;
-  });
-
-  const handleSync = async () => {
-    if (!import.meta.env.VITE_SUPABASE_URL) {
-      setToast({
-        isOpen: true,
-        title: 'Configuración Requerida',
-        message: 'Configura las variables de Supabase en .env para activar el Sync.'
-      });
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const allData = {
-        tasks,
-        habits,
-        logs,
-        objectives,
-        closedDays,
-        weeklyInsights,
-        stats
-      };
-      
-      await SyncService.syncData(userId, allData);
-      
-      setToast({
-        isOpen: true,
-        title: 'Sincronización Exitosa',
-        message: 'Tus datos están seguros en la nube.'
-      });
-    } catch (error) {
-      console.error('Sync failed', error);
-      setToast({
-        isOpen: true,
-        title: 'Error de Sincronización',
-        message: 'No se pudo conectar con el servidor.'
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    if (!import.meta.env.VITE_SUPABASE_URL) {
-      setToast({
-        isOpen: true,
-        title: 'Configuración Requerida',
-        message: 'Configura las variables de Supabase en .env para activar el Restore.'
-      });
-      return;
-    }
-
-    if (!window.confirm('¿Estás seguro? Esto sobrescribirá tus datos locales con los de la nube.')) {
-      return;
-    }
-
-    setIsRestoring(true);
-    try {
-      const cloudData = await SyncService.fetchData(userId);
-      
-      if (!cloudData) {
-        setToast({
-          isOpen: true,
-          title: 'Sin datos',
-          message: 'No se encontraron datos en la nube para este usuario.'
-        });
-        return;
-      }
-
-      // Restore all states
-      if (cloudData.tasks) setTasks(cloudData.tasks.map((t: any) => ({ ...t, date: new Date(t.date) })));
-      if (cloudData.habits) setHabits(cloudData.habits.map((h: any) => ({ ...h, createdAt: new Date(h.createdAt), archivedAt: h.archivedAt ? new Date(h.archivedAt) : undefined })));
-      if (cloudData.logs) setLogs(cloudData.logs.map((l: any) => ({ ...l, createdAt: new Date(l.createdAt) })));
-      if (cloudData.objectives) setObjectives(cloudData.objectives.map((o: any) => ({ ...o, createdAt: new Date(o.createdAt), deadline: o.deadline ? new Date(o.deadline) : undefined })));
-      if (cloudData.closedDays) setClosedDays(cloudData.closedDays.map((d: any) => ({ ...d, closedAt: new Date(d.closedAt) })));
-      if (cloudData.weeklyInsights) setWeeklyInsights(cloudData.weeklyInsights.map((i: any) => ({ ...i, generatedAt: new Date(i.generatedAt) })));
-      if (cloudData.stats) setStats(cloudData.stats);
-
-      setToast({
-        isOpen: true,
-        title: 'Restauración Exitosa',
-        message: 'Tus datos han sido recuperados.'
-      });
-    } catch (error) {
-      console.error('Restore failed', error);
-      setToast({
-        isOpen: true,
-        title: 'Error de Restauración',
-        message: 'No se pudo recuperar los datos del servidor.'
-      });
-    } finally {
-      setIsRestoring(false);
-    }
-  };
-
-  // Auto-sync effect
-  useEffect(() => {
-    if (!import.meta.env.VITE_SUPABASE_URL) return;
-    
-    const timer = setTimeout(() => {
-      const allData = { tasks, habits, logs, objectives, closedDays, weeklyInsights, stats };
-      SyncService.syncData(userId, allData).catch(console.error);
-    }, 10000); // Sync after 10 seconds of inactivity
-
-    return () => clearTimeout(timer);
-  }, [tasks, habits, logs, objectives, closedDays, weeklyInsights, stats, userId]);
-
-  const generateWeeklyInsight = async () => {
-    setIsGeneratingInsight(true);
-    try {
-      const service = new WeeklyInsightService(process.env.GEMINI_API_KEY || '');
-      const journalReflections = tasks
-        .filter(t => t.type === 'journal' && t.content)
-        .map(t => ({ date: format(t.date, 'yyyy-MM-dd'), content: t.content || '' }));
-      
-      const insight = await service.generateWeeklyInsight(habits, logs, objectives, journalReflections);
-      addWeeklyInsight(insight);
-      setWeeklyInsight(insight);
-      setIsWeeklyReviewOpen(true);
-    } catch (error) {
-      console.error('Failed to generate weekly insight', error);
-      setToast({
-        isOpen: true,
-        title: 'Error',
-        message: 'No se pudo generar el análisis semanal. Inténtalo de nuevo.'
-      });
-    } finally {
-      setIsGeneratingInsight(false);
-    }
-  };
-
-  const getDailyStats = () => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = subDays(new Date(), 6 - i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const dayLogs = logs.filter(l => l.date === dateStr);
-      const activeHabitsCount = habits.filter(h => h.isActive).length;
-      const rate = activeHabitsCount > 0 ? dayLogs.length / activeHabitsCount : 0;
-      return {
-        day: format(date, 'EEE', { locale: es }),
-        rate: Math.min(rate, 1)
-      };
-    });
-  };
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+  const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
+  const [isCloseDayModalOpen, setIsCloseDayModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [taskToEdit, setTaskToEdit] = useState<Task | undefined>(undefined);
+  const [habitToEdit, setHabitToEdit] = useState<Habit | undefined>(undefined);
+  const [objectiveToEdit, setObjectiveToEdit] = useState<Objective | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggleMilestone = (objectiveId: string, milestoneId: string) => {
     const objective = objectives.find(o => o.id === objectiveId);
@@ -274,43 +136,12 @@ export default function App() {
     _toggleHabitLog(habitId, date, value, note);
   };
   
-  const [viewMode, setViewMode] = useState<ViewMode>('today');
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
-  const [isObjectiveModalOpen, setIsObjectiveModalOpen] = useState(false);
-  const [isCloseDayModalOpen, setIsCloseDayModalOpen] = useState(false);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [taskToEdit, setTaskToEdit] = useState<Task | undefined>(undefined);
-  const [habitToEdit, setHabitToEdit] = useState<Habit | undefined>(undefined);
-  const [objectiveToEdit, setObjectiveToEdit] = useState<Objective | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Calculate real-time progress for objectives
   const objectivesWithProgress = useMemo(() => {
     return objectives.map(obj => ({
       ...obj,
       currentValue: calculateObjectiveProgress(obj, habits, logs)
     }));
   }, [objectives, habits, logs]);
-  
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -485,16 +316,21 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleTheme}
               className="p-2.5 text-text-muted hover:text-accent bg-bg-secondary dark:bg-[--dark-bg-secondary] rounded-[14px] border border-border-subtle dark:border-[--dark-border-subtle] transition-all"
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
             <button
               onClick={() => setIsAIModalOpen(true)}
-              className="p-2.5 text-accent bg-accent/10 hover:bg-accent/20 rounded-[14px] transition-all"
-              title="Sugerir IA"
+              className={cn(
+                "p-2.5 rounded-[14px] transition-all",
+                navigator.onLine 
+                  ? "text-accent bg-accent/10 hover:bg-accent/20" 
+                  : "text-text-muted bg-bg-secondary dark:bg-[--dark-bg-secondary] border border-border-subtle dark:border-[--dark-border-subtle] opacity-50 cursor-not-allowed"
+              )}
+              title={navigator.onLine ? "Sugerir IA" : "IA no disponible offline"}
             >
               <Sparkles className="w-5 h-5" />
             </button>
@@ -881,8 +717,6 @@ export default function App() {
         onClose={handleCloseHabitModal}
         onSave={handleSaveHabit}
         habitToEdit={habitToEdit}
-        objectives={objectives}
-        userLevel={stats.level}
       />
 
       <ObjectiveModal
@@ -890,16 +724,12 @@ export default function App() {
         onClose={handleCloseObjectiveModal}
         onSave={handleSaveObjective}
         objectiveToEdit={objectiveToEdit}
-        habits={habits}
       />
 
       <CloseDayModal
         isOpen={isCloseDayModalOpen}
         onClose={() => setIsCloseDayModalOpen(false)}
         onConfirm={handleConfirmCloseDay}
-        tasks={tasks}
-        habits={habits}
-        logs={logs}
       />
       
       <AISuggestionModal
@@ -931,7 +761,7 @@ export default function App() {
 
       <Toast 
         isOpen={toast.isOpen}
-        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
       />
@@ -941,7 +771,6 @@ export default function App() {
           isOpen={isWeeklyReviewOpen}
           onClose={() => setIsWeeklyReviewOpen(false)}
           insight={weeklyInsight}
-          dailyStats={getDailyStats()}
         />
       )}
     </div>

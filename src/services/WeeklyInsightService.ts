@@ -15,6 +15,9 @@ export class WeeklyInsightService {
     objectives: Objective[],
     reflections: { date: string; content: string }[]
   ): Promise<WeeklyInsight> {
+    if (!navigator.onLine) {
+      throw new Error("Offline: Weekly insight generation requires internet connection.");
+    }
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = subDays(new Date(), i);
       return format(date, 'yyyy-MM-dd');

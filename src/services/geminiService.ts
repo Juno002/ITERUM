@@ -2,6 +2,17 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { Task } from '../types';
 
 export async function suggestTasks(prompt: string): Promise<Omit<Task, 'id' | 'completed'>[]> {
+  if (!navigator.onLine) {
+    return [
+      {
+        title: "Revisar objetivos",
+        description: "El asistente IA no está disponible offline.",
+        date: new Date(),
+        color: "#C9935A",
+        type: "task" as any
+      }
+    ];
+  }
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

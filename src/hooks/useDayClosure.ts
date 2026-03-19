@@ -1,51 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useUserStore } from '../store/useUserStore';
 import { DayClosure, Task, Habit, HabitLog, WeeklyInsight } from '../types';
 import { GoogleGenAI } from "@google/genai";
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 export function useDayClosure() {
-  const [closedDays, setClosedDays] = useState<DayClosure[]>(() => {
-    const saved = localStorage.getItem('iterum_closed_days');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((d: any) => ({
-          ...d,
-          closedAt: new Date(d.closedAt),
-          insight: d.insight ? { ...d.insight, generatedAt: d.insight.generatedAt ? new Date(d.insight.generatedAt) : undefined } : undefined
-        }));
-      } catch (e) {
-        console.error('Failed to parse closed days', e);
-        return [];
-      }
-    }
-    return [];
-  });
-
-  const [weeklyInsights, setWeeklyInsights] = useState<WeeklyInsight[]>(() => {
-    const saved = localStorage.getItem('iterum_weekly_insights');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((i: any) => ({
-          ...i,
-          generatedAt: new Date(i.generatedAt)
-        }));
-      } catch (e) {
-        console.error('Failed to parse weekly insights', e);
-        return [];
-      }
-    }
-    return [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('iterum_closed_days', JSON.stringify(closedDays));
-  }, [closedDays]);
-
-  useEffect(() => {
-    localStorage.setItem('iterum_weekly_insights', JSON.stringify(weeklyInsights));
-  }, [weeklyInsights]);
+  const { closedDays, setClosedDays, addClosedDay, weeklyInsights, setWeeklyInsights, addWeeklyInsight: addWeeklyInsightToStore } = useUserStore();
 
   const isDayClosed = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -69,6 +28,8 @@ export function useDayClosure() {
   };
 
   const generateAISummary = async (habits: Habit[], logs: HabitLog[], tasks: Task[]) => {
+    if (!navigator.onLine) return "Día completado. (Resumen IA no disponible offline)";
+    
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return "No se pudo generar el resumen (falta API Key).";
 
@@ -150,13 +111,13 @@ export function useDayClosure() {
       closedAt: new Date(),
     };
 
-    setClosedDays(prev => [...prev, newClosure]);
+    setClosedDays([...closedDays, newClosure]);
     return newClosure;
   };
 
   const addWeeklyInsight = (insight: WeeklyInsight) => {
     const newInsight = { ...insight, generatedAt: new Date() };
-    setWeeklyInsights(prev => [newInsight, ...prev]);
+    addWeeklyInsightToStore(newInsight);
   };
 
   return { 

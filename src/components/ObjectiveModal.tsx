@@ -1,16 +1,16 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { X, Target, Zap, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Objective, Habit, Milestone } from '../types';
+import { Objective, Milestone } from '../types';
 import { cn } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
+import { useHabitStore } from '../store/useHabitStore';
 
 interface ObjectiveModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (objective: Omit<Objective, 'id' | 'isActive' | 'createdAt'>) => void;
   objectiveToEdit?: Objective;
-  habits?: Habit[];
 }
 
 const COLORS = [
@@ -22,7 +22,8 @@ const COLORS = [
   '#a855f7', // purple
 ];
 
-export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit, habits = [] }: ObjectiveModalProps) {
+export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit }: ObjectiveModalProps) {
+  const habits = useHabitStore(state => state.habits);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetValue, setTargetValue] = useState(100);

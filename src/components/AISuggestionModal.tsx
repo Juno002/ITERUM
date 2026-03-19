@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Sparkles, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, X, Loader2, CheckCircle2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Task } from '../types';
@@ -80,7 +80,19 @@ export function AISuggestionModal({ isOpen, onClose, onApply }: AISuggestionModa
         </div>
 
         <div className="p-8 flex-1 overflow-y-auto">
-          {!suggestedTasks.length && !isLoading ? (
+          {!navigator.onLine ? (
+            <div className="flex flex-col items-center justify-center py-20 space-y-6 text-center px-8">
+              <div className="w-16 h-16 bg-bg-secondary dark:bg-[--dark-bg-secondary] rounded-full flex items-center justify-center border border-border-subtle dark:border-[--dark-border-subtle]">
+                <Zap className="w-8 h-8 text-text-muted opacity-40" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold">Modo Offline</h3>
+                <p className="text-text-muted text-sm max-w-xs mx-auto">
+                  Las funciones de IA requieren conexión a internet. Vuelve cuando estés en línea para usar el asistente.
+                </p>
+              </div>
+            </div>
+          ) : !suggestedTasks.length && !isLoading ? (
             <form onSubmit={handleSuggest} className="space-y-6">
               <div>
                 <label htmlFor="prompt" className="block text-xs font-bold uppercase tracking-widest text-text-muted mb-3">

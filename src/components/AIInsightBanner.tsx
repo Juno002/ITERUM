@@ -35,6 +35,20 @@ export const AIInsightBanner: React.FC<AIInsightBannerProps> = ({ habits, logs, 
   const generateInsight = async () => {
     setIsLoading(true);
     try {
+      if (!navigator.onLine) {
+        const fallbackInsights = [
+          "La consistencia vence a la intensidad. Enfócate en un hábito hoy.",
+          "Un pequeño paso hoy es mejor que un gran salto mañana.",
+          "Revisa tus objetivos y ajusta tu rumbo si es necesario.",
+          "Tómate 5 minutos para planificar tu día. Marcará la diferencia."
+        ];
+        const randomInsight = fallbackInsights[Math.floor(Math.random() * fallbackInsights.length)];
+        setInsight(randomInsight);
+        setIsVisible(true);
+        setIsLoading(false);
+        return;
+      }
+
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         console.warn('No API key found for AI Insight');
