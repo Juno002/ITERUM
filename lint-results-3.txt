@@ -1,0 +1,118 @@
+
+> iterum@0.1.0 lint
+> eslint . --report-unused-disable-directives --max-warnings 0
+
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\App.tsx
+  252:76  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  252:97  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\Auth.tsx
+   4:10  warning  'cn' is defined but never used            @typescript-eslint/no-unused-vars
+  45:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\CalendarView.tsx
+  27:53  warning  'onToggle' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\HabitModal.tsx
+   2:18  warning  'Repeat' is defined but never used        @typescript-eslint/no-unused-vars
+   2:41  warning  'BookOpen' is defined but never used      @typescript-eslint/no-unused-vars
+  26:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\Header.tsx
+  42:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\ListView.tsx
+  3:24  warning  'Circle' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\ObjectiveCard.tsx
+  2:10  warning  'Target' is defined but never used     @typescript-eslint/no-unused-vars
+  3:21  warning  'Milestone' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\OnboardingWizard.tsx
+  12:3  warning  'ArrowRight' is defined but never used    @typescript-eslint/no-unused-vars
+  20:9  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\TaskModal.tsx
+   25:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\Toast.tsx
+  13:58  warning  'type' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\ViewHeader.tsx
+  24:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\components\WeekView.tsx
+  2:46  warning  'isSameDay' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\context\ThemeContext.tsx
+  35:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\hooks\useDayClosure.ts
+   9:5  warning  'addClosedDay' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+  42:5  warning  'addTask' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\hooks\useSync.ts
+  100:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\services\dbService.ts
+    2:33  warning  'Objective' is defined but never used     @typescript-eslint/no-unused-vars
+   18:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  164:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\services\migrationService.ts
+   2:10  warning  'useUserStore' is defined but never used         @typescript-eslint/no-unused-vars
+   3:10  warning  'useHabitStore' is defined but never used        @typescript-eslint/no-unused-vars
+   4:10  warning  'useTaskStore' is defined but never used         @typescript-eslint/no-unused-vars
+   5:10  warning  'useObjectiveStore' is defined but never used    @typescript-eslint/no-unused-vars
+  27:23  warning  'createdAt' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  32:53  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  34:27  warning  'logId' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  34:45  warning  'logCreated' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  49:19  warning  'id' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  49:23  warning  'createdAt' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  62:19  warning  'id' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  62:23  warning  'createdAt' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\services\supabase.ts
+  13:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\store\useHabitStore.ts
+   23:11  warning  'get' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   30:40  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   39:36  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  129:47  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  134:43  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\store\useObjectiveStore.ts
+  18:11  warning  'get' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  25:44  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  30:49  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  57:15  warning  'userId' is assigned a value but never used                            @typescript-eslint/no-unused-vars
+  68:15  warning  'userId' is assigned a value but never used                            @typescript-eslint/no-unused-vars
+  81:55  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\store\useTaskStore.ts
+  19:11  warning  'get' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  26:34  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  96:45  warning  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\store\useUserStore.ts
+  121:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Junior\OneDrive\Documents\GitHub\ITERUM\src\utils\sounds.ts
+  9:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 64 problems (0 errors, 64 warnings)
+
+ESLint found too many warnings (maximum: 0).

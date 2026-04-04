@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from './services/supabase';
+import { Auth } from './components/Auth';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { useTasks } from './hooks/useTasks';
@@ -24,10 +26,38 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ViewHeader } from './components/ViewHeader';
 import { ViewManager } from './components/ViewManager';
+import { useUserStore } from './store/useUserStore';
+import { Session } from '@supabase/supabase-js';
+import { migrationService } from './services/migrationService';
+import { dbService } from './services/dbService';
 
 export default function App() {
-  const { viewMode, setViewMode, isFocusMode, setIsFocusMode, toast, setToast, closeToast } =
-    useUIStore();
+  const [session, setSession] = useState<Session | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  useEffect(() => {
+    supabase?.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase!.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const {
+    viewMode,
+    setViewMode,
+    isFocusMode,
+    setIsFocusMode,
+    toast,
+    setToast,
+    closeToast,
+  } = useUIStore();
   const { theme, toggleTheme } = useTheme();
 
   const handleLevelUp = (level: number) => {
@@ -45,12 +75,66 @@ export default function App() {
     });
   };
 
-  const { tasks, addTask, updateTask, deleteTask, toggleTask } = useTasks();
-  const { habits, logs, addHabit, updateHabit, toggleHabitLog: _toggleHabitLog } = useHabits();
-  const { objectives, addObjective, updateObjective } = useObjectives();
-  const { closedDays, isDayClosed, closeDay, calculateStreak, weeklyInsights } = useDayClosure();
   const { stats, addExp, completeOnboarding } = useGamification({ onLevelUp: handleLevelUp });
+  const { closedDays, isDayClosed, closeDay, calculateStreak, weeklyInsights } = useDayClosure();
+  const { loadProfile, setUserId } = useUserStore();
+
+  const { loadHabits, loadLogs, habits, logs, addHabit, updateHabit, toggleHabitLog: _toggleHabitLog } = useHabits();
+  const { loadObjectives, objectives, addObjective, updateObjective } = useObjectives();
+  const { loadTasks, tasks, addTask, updateTask, deleteTask, toggleTask } = useTasks();
   const { isSyncing, isRestoring, handleSync, handleRestore } = useSync();
+
+  useEffect(() => {
+    if (session?.user && !isMigrating) {
+      const uid = session.user.id;
+      setUserId(uid);
+
+      const initData = async () => {
+        try {
+          // Check if profile exists and has data
+          const profile = await dbService.getProfile(uid);
+          
+          if (!profile || (profile.total_exp === 0 && !profile.onboarding_completed)) {
+            // Check if local data exists
+            const hasLocalData = !!localStorage.getItem('iterum_user_storage');
+            
+            if (hasLocalData) {
+              setIsMigrating(true);
+              setToast({
+                isOpen: true,
+                title: 'Migrando Datos...',
+                message: 'Estamos moviendo tu progreso local a la nube.',
+              });
+              await migrationService.migrateLocalToCloud(uid);
+              setToast({
+                isOpen: true,
+                title: '¡Migración Exitosa!',
+                message: 'Tus datos ahora están seguros en la nube.',
+              });
+              setIsMigrating(false);
+            }
+          }
+
+          loadProfile(uid);
+          loadHabits(uid);
+          loadLogs(uid);
+          loadTasks(uid);
+          loadObjectives(uid);
+        } catch (error) {
+          console.error('Initialization error:', error);
+          loadProfile(uid);
+          loadHabits(uid);
+          loadLogs(uid);
+          loadTasks(uid);
+          loadObjectives(uid);
+        }
+      };
+
+      initData();
+    } else if (!session) {
+      setUserId(null);
+    }
+  }, [session, setUserId, loadProfile, loadHabits, loadLogs, loadTasks, loadObjectives, isMigrating, setToast]);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -158,7 +242,10 @@ export default function App() {
   };
 
   const handleSaveTask = (
-    taskData: Omit<Task, 'id' | 'completed'> & { habitData?: any; objectiveData?: any },
+    taskData: Omit<Task, 'id' | 'completed' | 'createdAt'> & { 
+      habitData?: Partial<Habit>; 
+      objectiveData?: Partial<Objective>; 
+    },
   ) => {
     if (taskToEdit) {
       updateTask(taskToEdit.id, taskData);
@@ -227,6 +314,18 @@ export default function App() {
 
   const streak = calculateStreak();
 
+  if (!session) {
+    return (
+      <div
+        className={cn(
+          'bg-bg-primary text-text-primary min-h-screen font-sans transition-all duration-700 dark:bg-[--dark-bg-primary] dark:text-[--dark-text-primary]',
+        )}
+      >
+        <Auth />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -248,6 +347,10 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           theme={theme}
           toggleTheme={toggleTheme}
+          onSignOut={async () => {
+            await supabase!.auth.signOut();
+            setSession(null);
+          }}
           onNewObjective={() => {
             setObjectiveToEdit(undefined);
             setIsObjectiveModalOpen(true);

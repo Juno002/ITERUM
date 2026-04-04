@@ -11,6 +11,7 @@ import {
   Repeat,
   Sun,
   Moon,
+  LogOut,
 } from 'lucide-react';
 import { ViewMode } from '../types';
 import { cn } from '../utils';
@@ -24,6 +25,7 @@ interface HeaderProps {
   toggleTheme: () => void;
   onNewObjective: () => void;
   onCapture: () => void;
+  onSignOut: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   toggleTheme,
   onNewObjective,
   onCapture,
+  onSignOut,
 }) => {
   const navItems: { mode: ViewMode; label: string; icon: any }[] = [
     { mode: 'today', label: 'Hoy', icon: Zap },
@@ -91,6 +94,14 @@ export const Header: React.FC<HeaderProps> = ({
             className="text-text-muted hover:text-accent bg-bg-secondary border-border-subtle rounded-[14px] border p-2.5 transition-all dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-secondary]"
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
+          <button
+            onClick={onSignOut}
+            className="text-text-muted hover:text-accent bg-bg-secondary border-border-subtle rounded-[14px] border p-2.5 transition-all dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-secondary]"
+            title="Cerrar Sesión"
+          >
+            <LogOut className="h-5 w-5" />
           </button>
 
           <div className="flex items-center gap-2">

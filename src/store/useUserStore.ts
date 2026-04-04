@@ -1,14 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { UserStats, DayClosure, WeeklyInsight } from '../types';
+import { dbService } from '../services/dbService';
 
 interface UserState {
-  userId: string;
+  userId: string | null;
   stats: UserStats;
   closedDays: DayClosure[];
   weeklyInsights: WeeklyInsight[];
-  setUserId: (id: string) => void;
+  setUserId: (id: string | null) => void;
   setStats: (stats: UserStats) => void;
+  loadProfile: (userId: string) => Promise<void>;
   addExp: (
     amount: number,
     type: 'discipline' | 'consistency',
@@ -26,7 +28,7 @@ const EXP_PER_LEVEL = 100;
 export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
-      userId: `user_${crypto.randomUUID()}`,
+      userId: null,
       stats: {
         discipline: { exp: 0, level: 1 },
         consistency: { exp: 0, level: 1 },
@@ -40,36 +42,64 @@ export const useUserStore = create<UserState>()(
       setUserId: (id) => set({ userId: id }),
       setStats: (stats) => set({ stats }),
 
+      loadProfile: async (userId) => {
+        try {
+          const profile = await dbService.getProfile(userId);
+          if (profile) {
+            set({
+              userId,
+              stats: {
+                discipline: { exp: profile.discipline_exp, level: profile.discipline_level },
+                consistency: { exp: profile.consistency_exp, level: profile.consistency_level },
+                totalExp: profile.total_exp,
+                level: profile.level,
+                onboardingCompleted: profile.onboarding_completed,
+              },
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load profile:', error);
+        }
+      },
+
       addExp: (amount, type, onLevelUp) => {
-        const prev = get().stats;
-        const newTotalExp = prev.totalExp + amount;
+        const { stats, userId } = get();
+        const newTotalExp = stats.totalExp + amount;
         const newLevel = Math.floor(newTotalExp / EXP_PER_LEVEL) + 1;
 
-        const categoryStats = prev[type];
+        const categoryStats = stats[type];
         const newCategoryExp = categoryStats.exp + amount;
         const newCategoryLevel = Math.floor(newCategoryExp / EXP_PER_LEVEL) + 1;
 
-        if (newLevel > prev.level && onLevelUp) {
+        if (newLevel > stats.level && onLevelUp) {
           onLevelUp(newLevel);
         }
 
-        set({
-          stats: {
-            ...prev,
-            totalExp: newTotalExp,
-            level: newLevel,
-            [type]: {
-              exp: newCategoryExp,
-              level: newCategoryLevel,
-            },
+        const newStats = {
+          ...stats,
+          totalExp: newTotalExp,
+          level: newLevel,
+          [type]: {
+            exp: newCategoryExp,
+            level: newCategoryLevel,
           },
-        });
+        };
+
+        set({ stats: newStats });
+
+        if (userId) {
+          dbService.updateProfile(userId, newStats).catch(console.error);
+        }
       },
 
-      completeOnboarding: () =>
-        set((state) => ({
-          stats: { ...state.stats, onboardingCompleted: true },
-        })),
+      completeOnboarding: () => {
+        const { stats, userId } = get();
+        const newStats = { ...stats, onboardingCompleted: true };
+        set({ stats: newStats });
+        if (userId) {
+          dbService.updateProfile(userId, newStats).catch(console.error);
+        }
+      },
 
       setClosedDays: (closedDays) => set({ closedDays }),
       addClosedDay: (day) =>
