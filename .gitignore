@@ -1,8 +1,21 @@
+# Dependencies
 node_modules/
+
+# Build output
 build/
 dist/
 coverage/
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
+
+# Environment
 .env*
 !.env.example
+
+# Duplicate project copy
+public/ITERUM-main/
