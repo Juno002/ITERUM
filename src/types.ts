@@ -38,17 +38,13 @@ export type Milestone = {
 
 export type Objective = {
   id: string;
+  user_id?: string;
   title: string;
   description?: string;
-  targetValue: number; // e.g. 100% or 1000km
-  currentValue: number;
-  unit: string; // e.g. "%", "km", "sesiones"
-  deadline?: Date;
-  color?: string;
-  isActive: boolean;
-  createdAt: Date;
-  milestones?: Milestone[];
-  linkedHabitId?: string;
+  status: 'active' | 'achieved' | 'archived';
+  progress: number;
+  color_hint: string;
+  created_at: string;
 };
 
 export type Task = {
@@ -61,9 +57,17 @@ export type Task = {
   color?: string;
   createdAt: Date;
   migrated?: boolean;
-  // Journal specific
-  content?: string;
-  tags?: string[];
+};
+
+export type JournalEntry = {
+  id: string;
+  user_id?: string;
+  payload: string; // The encrypted E2EE payload
+  created_at: string;
+  
+  // Transient decrypted state (populated via Smart Merge)
+  text?: string;
+  objectiveId?: string;
 };
 
 export type ViewMode = 'today' | 'week' | 'month' | 'archive' | 'habits' | 'objectives' | 'journal';

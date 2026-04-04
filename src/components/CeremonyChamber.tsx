@@ -1,21 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUIStore } from '../store/useUIStore';
+import { useObjectiveStore } from '../store/useObjectiveStore';
 import { getDailyPrompt } from '../utils/prompts';
 import { feedback } from '../utils/feedback';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, Target } from 'lucide-react';
 import { cn } from '../utils';
 
 import { EnclaveStore, generateRecoveryPhrase, deriveKeyFromPhrase, encryptData } from '../utils/crypto';
 
+// Util to map text containing @mentions to colored spans in a background div
+function RichTextOverlay({ text, colorHint, linkedWord }: { text: string, colorHint?: string, linkedWord?: string }) {
+  if (!linkedWord || !colorHint) return <>{text}</>;
+  
+  const regex = new RegExp(`(${linkedWord})`, 'g');
+  const parts = text.split(regex);
+  
+  return (
+    <>
+      {parts.map((p, i) => 
+        p === linkedWord ? (
+          <span key={i} style={{ color: colorHint }} className="transition-colors duration-1000">
+            {p}
+          </span>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
+}
+
 export function CeremonyChamber() {
   const { ceremonyState, setCeremonyState } = useUIStore();
+  const objectives = useObjectiveStore(state => state.objectives);
+  const fetchObjectives = useObjectiveStore(state => state.fetchObjectives);
+
   const [journalText, setJournalText] = useState('');
   const [prompt, setPrompt] = useState('');
   const [recoveryPhraseVisible, setRecoveryPhraseVisible] = useState<string | null>(null);
 
+  // Mention State
+  const [mentionQuery, setMentionQuery] = useState<{ query: string, index: number, prefix: string } | null>(null);
+  const [linkedObjective, setLinkedObjective] = useState<{ id: string, name: string, color: string, word: string } | null>(null);
+
   useEffect(() => {
     if (ceremonyState === 'entering') {
+      fetchObjectives();
       setPrompt(getDailyPrompt());
       // Auto move to ritual after a brief pause
       const t = setTimeout(() => {
@@ -23,7 +54,43 @@ export function CeremonyChamber() {
       }, 3000);
       return () => clearTimeout(t);
     }
-  }, [ceremonyState, setCeremonyState]);
+  }, [ceremonyState, setCeremonyState, fetchObjectives]);
+
+  // Handle Mentions Parsing
+  useEffect(() => {
+    // Detect if the user is typing a mention (e.g. "@..." or "#...") at the end of the text
+    const match = journalText.match(/(?:^|\s)([@#])(\w*)$/);
+    if (match && match.index !== undefined) {
+      setMentionQuery({ prefix: match[1], query: match[2].toLowerCase(), index: match.index });
+    } else {
+      setMentionQuery(null);
+    }
+  }, [journalText]);
+
+  const activeObjectives = objectives.filter(o => o.status !== 'archived');
+  const filteredObjectives = mentionQuery 
+    ? activeObjectives.filter(o => o.title.toLowerCase().includes(mentionQuery.query))
+    : [];
+
+  const handleSelectMention = (objective: any) => {
+    if (!mentionQuery) return;
+    navigator.vibrate?.(30); // Single sustained soft haptic pulse
+    
+    // Replace the query with the actual objective name
+    const before = journalText.substring(0, mentionQuery.index);
+    // Add the space if there was one before the prefix
+    const spacePrefix = journalText[mentionQuery.index] === ' ' ? ' ' : '';
+    const replacement = `${spacePrefix}${mentionQuery.prefix}${objective.title.replace(/\s+/g, '')} `;
+    
+    setJournalText(before + replacement);
+    setMentionQuery(null);
+    setLinkedObjective({ 
+      id: objective.id, 
+      name: objective.title, 
+      color: objective.color_hint, 
+      word: `${mentionQuery.prefix}${objective.title.replace(/\s+/g, '')}` 
+    });
+  };
 
   // Calculate opacity based on typing (weight transfer)
   // Max opacity reduction at 200 characters
@@ -41,16 +108,14 @@ export function CeremonyChamber() {
     }
     
     const key = await deriveKeyFromPhrase(phrase);
-    const { cipher, iv } = await encryptData(journalText, key);
     
-    // Fake Backend Sync
-    console.log("[Iterum Secure Enclave] Encrypted Payload Sent via E2EE:", { cipher, iv });
+    const { useJournalStore } = await import('../store/useJournalStore');
+    await useJournalStore.getState().addJournal(journalText, linkedObjective?.id);
+    
+    console.log("[Iterum Secure Enclave] Journal Entry Sealed with E2EE");
     
     feedback.celebrate();
     setCeremonyState('sealed');
-    
-    // In a real app we'd trigger the supabase mutation here
-    // But we don't auto-close the UI, 'sealed' remains active forever to lock the app
   };
 
   if (ceremonyState === 'idle') {
@@ -105,12 +170,20 @@ export function CeremonyChamber() {
           </motion.div>
         ) : (
           <>
-            {/* Dynamic Fog Background */}
+            {/* Dynamic Fog Background with Chromatic Transition */}
             <motion.div
-              className="absolute inset-0 bg-[#0C0C0C] pointer-events-none"
+              className="absolute inset-0 pointer-events-none transition-colors duration-[2000ms] ease-in-out"
               animate={{ opacity: fogOpacity }}
               transition={{ duration: 0.5 }}
+              style={{
+                backgroundColor: linkedObjective ? linkedObjective.color : '#0C0C0C',
+                // Keep it very dark even with the color hint, acting as a deep aura
+                backgroundImage: linkedObjective ? `radial-gradient(circle at 50% 50%, transparent 20%, #0C0C0C 80%)` : 'none',
+                mixBlendMode: linkedObjective ? 'color' : 'normal'
+              }}
             />
+            {/* The actual darkness veil to ensure readability isn't compromised */}
+            <div className="absolute inset-0 bg-[#0C0C0C]/80 pointer-events-none" />
 
             <div className="relative z-10 w-full max-w-2xl flex flex-col items-center flex-1 py-20">
               {/* Daily Prompt */}
@@ -132,14 +205,52 @@ export function CeremonyChamber() {
                     transition={{ delay: 1, duration: 1 }}
                     className="w-full flex-1 flex flex-col relative"
                   >
-                    <textarea
-                      autoFocus
-                      value={journalText}
-                      onChange={(e) => setJournalText(e.target.value)}
-                      placeholder="Escribe en el vacío..."
-                      className="w-full h-full bg-transparent text-lg md:text-xl text-white/90 placeholder:text-white/20 resize-none outline-none font-serif leading-relaxed"
-                      spellCheck={false}
-                    />
+                    <div className="relative w-full h-full">
+                      {/* Fake overlay for rich text color */}
+                      <div className="absolute inset-0 text-lg md:text-xl font-serif leading-relaxed pointer-events-none whitespace-pre-wrap break-words text-transparent z-10">
+                        <RichTextOverlay text={journalText} colorHint={linkedObjective?.color} linkedWord={linkedObjective?.word} />
+                      </div>
+                      
+                      {/* Actual transparent textarea */}
+                      <textarea
+                        autoFocus
+                        value={journalText}
+                        onChange={(e) => setJournalText(e.target.value)}
+                        placeholder="Escribe en el vacío..."
+                        className="absolute inset-0 w-full h-full bg-transparent text-lg md:text-xl text-white/90 placeholder:text-white/20 resize-none outline-none font-serif leading-relaxed z-20 caret-white"
+                        style={{ color: linkedObjective ? 'rgba(255, 255, 255, 0.9)' : undefined }}
+                        spellCheck={false}
+                      />
+                    </div>
+
+                    {/* Mention Menu */}
+                    <AnimatePresence>
+                      {mentionQuery && filteredObjectives.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="absolute z-50 bottom-24 left-0 w-full sm:w-80 bg-[#0C0C0C]/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                        >
+                          <div className="p-2 border-b border-white/5 text-[10px] text-text-muted font-bold tracking-widest uppercase flex items-center gap-2">
+                            <Target className="w-3 h-3" />
+                            Selecciona una Meta
+                          </div>
+                          <div className="max-h-48 overflow-y-auto">
+                            {filteredObjectives.map((obj) => (
+                              <button
+                                key={obj.id}
+                                onClick={() => handleSelectMention(obj)}
+                                className="w-full text-left p-3 hover:bg-white/5 transition-colors flex items-center justify-between"
+                              >
+                                <span className="text-white/90 font-sans text-sm">{obj.title}</span>
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: obj.color_hint }} />
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Seal Sequence trigger */}
                     {journalText.length >= 10 && (

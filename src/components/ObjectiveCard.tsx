@@ -1,130 +1,130 @@
 import React from 'react';
-import { Target, Calendar, ChevronRight, Edit2, CheckCircle2, Circle } from 'lucide-react';
-import { Objective, Milestone } from '../types';
+import { Objective } from '../types';
 import { cn } from '../utils';
-import { motion } from 'motion/react';
+import { motion, useAnimationControls } from 'motion/react';
+import { Target } from 'lucide-react';
 
 interface ObjectiveCardProps {
   objective: Objective;
   onEdit: (objective: Objective) => void;
-  onToggleMilestone?: (objectiveId: string, milestoneId: string) => void;
 }
 
 export const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
   objective,
   onEdit,
-  onToggleMilestone,
 }) => {
-  const progress = Math.min(
-    100,
-    Math.round((objective.currentValue / objective.targetValue) * 100),
-  );
-  const completedMilestones = objective.milestones?.filter((m) => m.completed).length || 0;
-  const totalMilestones = objective.milestones?.length || 0;
+  const isAchieved = objective.status === 'achieved' || objective.progress >= 100;
+
+  // The base box shadow radiates from the bottom unless achieved, then it surrounds it.
+  const dynamicShadow = isAchieved
+    ? `0 0 20px -2px ${objective.color_hint}40, inset 0 0 10px 1px ${objective.color_hint}1a` // Aura perimetral
+    : `0 15px 30px -10px ${objective.color_hint}40`; // Fuego lento inferior
 
   return (
     <motion.div
       layout
-      className="iterum-card group relative flex flex-col gap-6 overflow-hidden p-6"
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onClick={() => onEdit(objective)}
+      className={cn(
+        "group relative flex flex-col justify-between overflow-hidden p-6 min-h-[160px] cursor-pointer rounded-3xl transition-all duration-500",
+        "bg-[#0a0a0a] border border-[#1a1a1a]"
+      )}
+      style={{
+        boxShadow: dynamicShadow,
+      }}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold tracking-tight">{objective.title}</h3>
-          </div>
-          {objective.description && (
-            <p className="text-text-muted line-clamp-2 text-sm">{objective.description}</p>
-          )}
-        </div>
-
-        <button
-          onClick={() => onEdit(objective)}
-          className="text-text-muted hover:text-accent p-2 opacity-0 transition-all group-hover:opacity-100"
-        >
-          <Edit2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div className="flex flex-col">
-            <span className="text-text-muted text-[10px] font-bold tracking-widest uppercase">
-              Progreso
-            </span>
-            <span className="text-accent text-2xl font-bold">
-              {objective.currentValue}{' '}
-              <span className="text-text-muted text-sm font-medium">
-                / {objective.targetValue} {objective.unit}
-              </span>
-            </span>
-          </div>
-          <div className="text-right">
-            <span className="text-lg font-bold">{progress}%</span>
-          </div>
-        </div>
-
-        <div className="bg-bg-secondary border-border-subtle h-3 overflow-hidden rounded-full border dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-secondary]">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-            className="bg-accent h-full rounded-full shadow-[0_0_12px_rgba(201,147,90,0.3)]"
-            style={{ backgroundColor: objective.color }}
-          />
-        </div>
-      </div>
-
-      {objective.milestones && objective.milestones.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted text-[10px] font-bold tracking-widest uppercase">
-              Hitos ({completedMilestones}/{totalMilestones})
-            </span>
-          </div>
-          <div className="space-y-2">
-            {objective.milestones.map((milestone) => (
-              <button
-                key={milestone.id}
-                onClick={() => onToggleMilestone?.(objective.id, milestone.id)}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-[12px] border p-2.5 text-left transition-all',
-                  milestone.completed
-                    ? 'bg-accent/5 border-accent/20 text-text-primary'
-                    : 'bg-bg-secondary/50 border-border-subtle text-text-muted hover:border-accent/30',
-                )}
-              >
-                {milestone.completed ? (
-                  <CheckCircle2 className="text-accent h-4 w-4 shrink-0" />
-                ) : (
-                  <Circle className="text-text-muted/30 h-4 w-4 shrink-0" />
-                )}
-                <span
-                  className={cn(
-                    'text-xs font-medium',
-                    milestone.completed && 'line-through opacity-60',
-                  )}
-                >
-                  {milestone.title}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Latido Micro-Animado: Solo respira si está activo */}
+      {!isAchieved && (
+        <motion.div
+          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+          animate={{ opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            background: `radial-gradient(circle at center bottom, ${objective.color_hint} 0%, transparent 60%)`
+          }}
+        />
       )}
 
-      <div className="border-border-subtle flex items-center justify-between border-t pt-2 dark:border-[--dark-border-subtle]">
-        <div className="flex items-center gap-4">
-          {objective.deadline && (
-            <div className="text-text-muted flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase">
-              <Calendar className="h-3.5 w-3.5" />
-              {new Date(objective.deadline).toLocaleDateString()}
-            </div>
+      {/* Si logró el 100%, brilla distinto en el centro */}
+      {isAchieved && (
+        <motion.div
+          className="absolute inset-0 z-0 pointer-events-none mix-blend-screen"
+          animate={{ 
+            opacity: [0.1, 0.4, 0.1],
+            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] 
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          style={{
+            background: `linear-gradient(45deg, transparent 20%, ${objective.color_hint}20 50%, transparent 80%)`,
+            backgroundSize: "200% 200%"
+          }}
+        />
+      )}
+
+      {/* Top Header */}
+      <div className="relative z-10 flex items-start justify-between">
+        <div className="space-y-1 pr-12">
+          <h3 className={cn(
+            "text-xl font-bold tracking-tight transition-colors duration-500",
+            isAchieved ? "text-[#c9935a]" : "text-text-primary group-hover:text-white"
+          )}>
+            {objective.title}
+          </h3>
+          {objective.description && (
+            <p className="text-text-muted line-clamp-2 text-xs font-serif italic mt-2 opacity-60">
+              "{objective.description}"
+            </p>
           )}
         </div>
+      </div>
 
-        <div className="text-accent flex items-center gap-1 text-[10px] font-bold tracking-wider uppercase">
-          Detalles
-          <ChevronRight className="h-3 w-3" />
+      {/* Bottom Area: Progress */}
+      <div className="relative z-10 flex items-end justify-between mt-8">
+        <div>
+           {/* Placeholder for future tags or categories if needed, right now kept minimalist */}
+        </div>
+
+        {/* Minimalist Circular SVG Ring */}
+        <div className="relative flex items-center justify-center w-12 h-12">
+          {!isAchieved ? (
+            <>
+              {/* Contenedor del Aro */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="22"
+                  className="stroke-[#1a1a1a]"
+                  strokeWidth="1" /* Sub-pixel aesthetics */
+                  fill="none"
+                />
+                <motion.circle
+                  cx="24"
+                  cy="24"
+                  r="22"
+                  stroke={objective.color_hint}
+                  strokeWidth="1"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ strokeDasharray: "138 138", strokeDashoffset: 138 }}
+                  animate={{ strokeDashoffset: 138 - (138 * objective.progress) / 100 }}
+                  transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+                />
+              </svg>
+              <div className="font-sans text-[10px] tracking-widest font-bold text-text-secondary">
+                {objective.progress}%
+              </div>
+            </>
+          ) : (
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex items-center justify-center w-full h-full rounded-full border border-[#c9935a]/30 bg-[#c9935a]/10"
+            >
+              <Target className="w-5 h-5 text-[#c9935a]" />
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>

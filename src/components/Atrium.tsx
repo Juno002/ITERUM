@@ -1,12 +1,68 @@
 import React, { useRef, useState } from 'react';
-import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'motion/react';
+import { motion, useScroll, useMotionValueEvent, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import { Task, Habit, Objective } from '../types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Plus, Target, Archive, Focus } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
+import { useTaskStore } from '../store/useTaskStore';
 import { cn } from '../utils';
+import { feedback } from '../utils/feedback';
 import { UniversalForge } from './UniversalForge';
+
+function ForgeTaskItem({ task, onSelect }: { task: Task, onSelect: (task: Task) => void }) {
+  const toggleTask = useTaskStore(state => state.toggleTask);
+  const x = useMotionValue(0);
+  
+  // Resistencia elástica: Transiciona de nada a verde bosque sutil
+  const backgroundColor = useTransform(x, [0, 150], ['rgba(0,0,0,0)', 'rgba(21, 61, 36, 0.4)']);
+
+  const handleDragEnd = (e: any, info: any) => {
+    if (info.offset.x > 120) {
+      // Threshold cruzado: Completar asimétricamente
+      feedback.success();
+      if ('vibrate' in navigator) navigator.vibrate([20, 50, 20]);
+      toggleTask(task.id);
+    }
+  };
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative -mx-4 overflow-hidden rounded-2xl"
+    >
+      {/* Background layer for swipe indication */}
+      <motion.div
+         className="absolute inset-0 flex items-center px-6 pointer-events-none"
+         style={{ opacity: useTransform(x, [0, 80], [0, 1]) }}
+      >
+        <span className="text-[#c9935a] font-bold uppercase text-[10px] tracking-widest">
+           [ COMPLETAR ]
+        </span>
+      </motion.div>
+
+      {/* Draggable Task Card */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.4}
+        onDragEnd={handleDragEnd}
+        style={{ x, backgroundColor }}
+        className="group flex flex-col gap-1 cursor-pointer p-4 rounded-2xl hover:bg-bg-secondary transition-colors relative z-10"
+        onClick={() => onSelect(task)}
+      >
+        <h3 className={cn("text-lg font-medium", task.completed && "line-through opacity-50")}>
+          {task.title}
+        </h3>
+        {task.description && (
+          <p className="text-sm text-text-muted line-clamp-1">{task.description}</p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
 
 interface AtriumProps {
   tasks: Task[];
@@ -115,19 +171,7 @@ export function Atrium({ tasks, habits, streak, onNewTask, onTaskSelect }: Atriu
 
         <div className="space-y-6">
           {forgeTasks.map(task => (
-            <motion.div
-              key={task.id}
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="group flex flex-col gap-1 cursor-pointer p-4 -mx-4 rounded-2xl hover:bg-bg-secondary transition-colors"
-              onClick={() => onTaskSelect(task)}
-            >
-              <h3 className="text-lg font-medium">{task.title}</h3>
-              {task.description && (
-                <p className="text-sm text-text-muted line-clamp-1">{task.description}</p>
-              )}
-            </motion.div>
+             <ForgeTaskItem key={task.id} task={task} onSelect={onTaskSelect} />
           ))}
           {forgeTasks.length === 0 && (
             <div className="text-center py-10 text-text-muted text-sm italic">

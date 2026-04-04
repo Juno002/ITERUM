@@ -6,7 +6,8 @@ import { JournalView } from './JournalView';
 import { ListView } from './ListView';
 import { WeekView } from './WeekView';
 import { CalendarView } from './CalendarView';
-
+import { Anvil } from 'lucide-react';
+import { useSyncQueueStore } from '../store/useSyncQueueStore';
 interface ViewManagerProps {
   viewMode: ViewMode;
   filteredHabits: Habit[];
@@ -48,8 +49,19 @@ export const ViewManager: React.FC<ViewManagerProps> = ({
   deleteTask,
   handleDateSelect,
 }) => {
+  const { queue } = useSyncQueueStore();
+  const pendingCount = queue.length;
+
   return (
-    <div className="space-y-12 lg:col-span-8">
+    <div className="space-y-12 lg:col-span-8 relative">
+      {/* Indicador de Yunque (Offline/Syncing Queue) */}
+      {pendingCount > 0 && (
+        <div className="absolute -top-8 right-0 flex items-center gap-1.5 text-[#555] opacity-80" title={`${pendingCount} operaciones pendientes de forja`}>
+          <Anvil className="w-[10px] h-[10px]" />
+          <span className="text-[9px] font-mono tracking-widest">{pendingCount}</span>
+        </div>
+      )}
+      
       {viewMode === 'habits' ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {filteredHabits.map((habit) => (
@@ -69,18 +81,23 @@ export const ViewManager: React.FC<ViewManagerProps> = ({
           )}
         </div>
       ) : viewMode === 'objectives' ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {filteredObjectives.map((objective) => (
-            <ObjectiveCard
-              key={objective.id}
-              objective={objective}
-              onEdit={handleEditObjective}
-              onToggleMilestone={handleToggleMilestone}
-            />
+        <div className="columns-1 md:columns-2 gap-6 space-y-6">
+          {[...filteredObjectives]
+            .sort((a, b) => b.progress - a.progress)
+            .map((objective, idx) => (
+            <div key={objective.id} className="break-inside-avoid">
+              <ObjectiveCard
+                objective={objective}
+                onEdit={handleEditObjective}
+              />
+            </div>
           ))}
           {filteredObjectives.length === 0 && (
-            <div className="iterum-card col-span-full border-dashed py-20 text-center">
-              <p className="text-text-muted">No hay objetivos activos. Define uno para empezar.</p>
+            <div className="iterum-card col-span-full border-dashed py-20 text-center flex flex-col items-center gap-4">
+              <span className="text-[#c9935a] opacity-50 text-4xl">✧</span>
+              <p className="text-text-muted font-serif italic text-sm tracking-widest">
+                El firmamento está vacío. <br/> Forja una [ Meta: ] para encender las estrellas.
+              </p>
             </div>
           )}
         </div>

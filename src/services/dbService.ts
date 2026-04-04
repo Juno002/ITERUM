@@ -168,31 +168,131 @@ export const dbService = {
     const client = requireSupabase();
     const { data, error } = await client
       .from('objectives')
-      .select('*, milestones(*)')
-      .eq('user_id', userId);
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
   },
 
-  async createObjective(userId: string, objective: Omit<Objective, 'id' | 'createdAt'>) {
+  async createObjective(userId: string, objective: Omit<Objective, 'id' | 'created_at' | 'user_id'>) {
     const client = requireSupabase();
-    const { milestones, ...objData } = objective;
-    const { data: newObj, error: objError } = await client
-      .from('objectives')
-      .insert([{ ...objData, user_id: userId }])
-      .select()
-      .single();
-    
-    if (objError) throw objError;
-
-    if (milestones && milestones.length > 0) {
-      const milClient = requireSupabase();
-      const { error: milError } = await milClient
-        .from('milestones')
-        .insert(milestones.map((m: any) => ({ ...m, objective_id: newObj.id, user_id: userId })));
-      if (milError) throw milError;
+    try {
+      if (!navigator.onLine) throw new Error('Failed to fetch');
+      const { data, error } = await client
+        .from('objectives')
+        .insert([{ ...objective, user_id: userId }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (e: any) {
+      if (e.message?.includes('Failed to fetch') || !navigator.onLine) {
+        const { useSyncQueueStore } = await import('../store/useSyncQueueStore');
+        const fakeId = (objective as any).id || crypto.randomUUID();
+        useSyncQueueStore.getState().enqueue('objective', 'create', userId, { ...objective, id: fakeId });
+        return { ...objective, id: fakeId, created_at: new Date().toISOString() };
+      }
+      throw e;
     }
+  },
 
-    return newObj;
+  async updateObjective(userId: string, objectiveId: string, updates: Partial<Objective>) {
+    const client = requireSupabase();
+    try {
+      if (!navigator.onLine) throw new Error('Failed to fetch');
+      const { error } = await client
+        .from('objectives')
+        .update(updates)
+        .eq('id', objectiveId)
+        .eq('user_id', userId);
+        
+      if (error) throw error;
+    } catch (e: any) {
+      if (e.message?.includes('Failed to fetch') || !navigator.onLine) {
+        const { useSyncQueueStore } = await import('../store/useSyncQueueStore');
+        useSyncQueueStore.getState().enqueue('objective', 'update', userId, updates, objectiveId);
+        return;
+      }
+      throw e;
+    }
+  },
+  
+  async deleteObjective(userId: string, objectiveId: string) {
+    const client = requireSupabase();
+    try {
+      if (!navigator.onLine) throw new Error('Failed to fetch');
+      const { error } = await client
+        .from('objectives')
+        .delete()
+        .eq('id', objectiveId)
+        .eq('user_id', userId);
+        
+      if (error) throw error;
+    } catch (e: any) {
+      if (e.message?.includes('Failed to fetch') || !navigator.onLine) {
+        const { useSyncQueueStore } = await import('../store/useSyncQueueStore');
+        useSyncQueueStore.getState().enqueue('objective', 'delete', userId, {}, objectiveId);
+        return;
+      }
+      throw e;
+    }
+  },
+
+  // JOURNALS
+  async getJournals(userId: string) {
+    const client = requireSupabase();
+    const { data, error } = await client
+      .from('journals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async createJournal(userId: string, journal: Omit<import('../types').JournalEntry, 'id' | 'created_at' | 'user_id' | 'text' | 'objectiveId'>) {
+    const client = requireSupabase();
+    try {
+      if (!navigator.onLine) throw new Error('Failed to fetch');
+      const { data, error } = await client
+        .from('journals')
+        .insert([{ payload: journal.payload, user_id: userId }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (e: any) {
+      if (e.message?.includes('Failed to fetch') || !navigator.onLine) {
+        const { useSyncQueueStore } = await import('../store/useSyncQueueStore');
+        const fakeId = (journal as any).id || crypto.randomUUID();
+        useSyncQueueStore.getState().enqueue('journal', 'create', userId, { ...journal, id: fakeId });
+        return { ...journal, id: fakeId, created_at: new Date().toISOString() };
+      }
+      throw e;
+    }
+  },
+
+  async deleteJournal(userId: string, journalId: string) {
+    const client = requireSupabase();
+    try {
+      if (!navigator.onLine) throw new Error('Failed to fetch');
+      const { error } = await client
+        .from('journals')
+        .delete()
+        .eq('id', journalId)
+        .eq('user_id', userId);
+        
+      if (error) throw error;
+    } catch (e: any) {
+      if (e.message?.includes('Failed to fetch') || !navigator.onLine) {
+        const { useSyncQueueStore } = await import('../store/useSyncQueueStore');
+        useSyncQueueStore.getState().enqueue('journal', 'delete', userId, {}, journalId);
+        return;
+      }
+      throw e;
+    }
   }
 };

@@ -5,85 +5,90 @@ import { Task, WeeklyInsight } from '../types';
 import { cn } from '../utils';
 import { Search, Tag, Calendar, BookOpen, ChevronRight } from 'lucide-react';
 
+import { useJournalStore } from '../store/useJournalStore';
+import { useObjectiveStore } from '../store/useObjectiveStore';
+
 interface JournalViewProps {
-  tasks: Task[];
   weeklyInsights?: WeeklyInsight[];
-  onEdit: (task: Task) => void;
   onViewInsight?: (insight: WeeklyInsight) => void;
 }
 
 export function JournalView({
-  tasks,
   weeklyInsights = [],
-  onEdit,
   onViewInsight,
 }: JournalViewProps) {
+  const { journals } = useJournalStore();
+  const { objectives } = useObjectiveStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedObjId, setSelectedObjId] = useState<string | null>(null);
 
   const journalEntries = useMemo(() => {
-    return tasks
-      .filter((t) => t.type === 'journal')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [tasks]);
+    return [...journals].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [journals]);
 
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
+  const allLinkedObjectives = useMemo(() => {
+    const ids = new Set<string>();
     journalEntries.forEach((entry) => {
-      entry.tags?.forEach((tag) => tags.add(tag));
+      if (entry.objectiveId) ids.add(entry.objectiveId);
     });
-    return Array.from(tags);
-  }, [journalEntries]);
+    return Array.from(ids)
+      .map(id => objectives.find(o => o.id === id))
+      .filter(Boolean) as import('../types').Objective[];
+  }, [journalEntries, objectives]);
 
   const filteredEntries = useMemo(() => {
     return journalEntries.filter((entry) => {
-      const matchesSearch =
-        entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.content?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesTag = !selectedTag || entry.tags?.includes(selectedTag);
-      return matchesSearch && matchesTag;
+      const matchesSearch = entry.text?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
+      const matchesObj = !selectedObjId || entry.objectiveId === selectedObjId;
+      return matchesSearch && matchesObj;
     });
-  }, [journalEntries, searchQuery, selectedTag]);
+  }, [journalEntries, searchQuery, selectedObjId]);
 
   return (
     <div className="animate-in fade-in space-y-10 duration-700">
       <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-        <div className="relative max-w-md flex-1">
+        <div className="relative max-w-md flex-1 group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-accent/0 via-accent/5 to-accent/0 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity blur-sm"></div>
           <Search className="text-text-muted absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar en tus reflexiones..."
+            placeholder="Invocar esencias del pasado..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="iterum-input w-full pl-12"
+            className="iterum-input w-full pl-12 bg-bg-secondary/50 backdrop-blur-sm relative border-border-subtle"
           />
         </div>
 
         <div className="no-scrollbar flex items-center gap-3 overflow-x-auto pb-2 md:pb-0">
           <button
-            onClick={() => setSelectedTag(null)}
+            onClick={() => setSelectedObjId(null)}
             className={cn(
               'rounded-full px-4 py-2 text-xs font-bold tracking-widest whitespace-nowrap uppercase transition-all',
-              !selectedTag
-                ? 'bg-accent text-bg-primary shadow-accent/20 shadow-lg'
-                : 'bg-bg-secondary text-text-muted hover:text-accent',
+              !selectedObjId
+                ? 'bg-accent/10 text-accent shadow-accent/20 border border-accent/20'
+                : 'bg-bg-secondary text-text-muted hover:text-accent border border-transparent',
             )}
           >
-            Todos
+            Todas
           </button>
-          {allTags.map((tag) => (
+          {allLinkedObjectives.map((obj) => (
             <button
-              key={tag}
-              onClick={() => setSelectedTag(tag)}
+              key={obj.id}
+              onClick={() => setSelectedObjId(obj.id)}
+              style={{
+                borderColor: selectedObjId === obj.id ? obj.color_hint : 'transparent',
+                backgroundColor: selectedObjId === obj.id ? `${obj.color_hint}15` : undefined,
+                color: selectedObjId === obj.id ? obj.color_hint : undefined
+              }}
               className={cn(
                 'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold tracking-widest whitespace-nowrap uppercase transition-all',
-                selectedTag === tag
-                  ? 'bg-accent text-bg-primary shadow-accent/20 shadow-lg'
-                  : 'bg-bg-secondary text-text-muted hover:text-accent',
+                selectedObjId === obj.id
+                  ? 'shadow-lg'
+                  : 'bg-bg-secondary text-text-muted hover:opacity-80 border border-transparent',
               )}
             >
               <Tag className="h-3 w-3" />
-              {tag}
+              {obj.title}
             </button>
           ))}
         </div>
@@ -126,49 +131,52 @@ export function JournalView({
             <span className="bg-text-muted/30 h-1.5 w-1.5 rounded-full"></span>
             Entradas del Diario
           </h3>
-          <div className="grid gap-8">
-            {filteredEntries.map((entry) => (
-              <article
-                key={entry.id}
-                onClick={() => onEdit(entry)}
-                className="group bg-bg-primary border-border-subtle hover:border-accent/40 hover:shadow-accent/5 cursor-pointer rounded-[32px] border p-8 transition-all duration-500 hover:shadow-2xl dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-primary]"
-              >
-                <div className="flex flex-col gap-8 md:flex-row">
-                  <div className="flex-shrink-0 md:w-48">
-                    <div className="text-accent mb-2 flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}
-                    </div>
-                    <h3 className="group-hover:text-accent text-xl leading-tight font-bold transition-colors">
-                      {entry.title}
-                    </h3>
-                  </div>
+          <div className="relative pl-6 space-y-12">
+            {/* Timeline Line */}
+            <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-border-subtle dark:bg-[--dark-border-subtle]"></div>
 
-                  <div className="flex-1 space-y-4">
-                    <p className="text-text-muted line-clamp-3 leading-relaxed italic dark:text-[--dark-text-muted]">
-                      &quot;{entry.content || 'Sin contenido...'}&quot;
-                    </p>
+            {filteredEntries.map((entry) => {
+              const linkedObj = entry.objectiveId ? objectives.find(o => o.id === entry.objectiveId) : null;
+              const colorHint = linkedObj ? linkedObj.color_hint : '#555555';
+              return (
+                <article
+                  key={entry.id}
+                  className="relative group"
+                >
+                  {/* Timeline Node */}
+                  <div 
+                    className="absolute -left-[29px] top-2 w-[14px] h-[14px] rounded-full border-4 border-bg-primary dark:border-[--dark-bg-primary] shadow-sm transition-transform duration-500 group-hover:scale-150"
+                    style={{ backgroundColor: colorHint }}
+                  ></div>
 
-                    <div className="border-border-subtle flex items-center justify-between border-t pt-4 dark:border-[--dark-border-subtle]">
-                      <div className="flex gap-2">
-                        {entry.tags?.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-accent/60 bg-accent/5 rounded-md px-2 py-1 text-[9px] font-bold tracking-widest uppercase"
+                  <div 
+                    style={{ '--hover-color': `${colorHint}20`, borderColor: 'var(--border-subtle)' } as React.CSSProperties}
+                    className="bg-bg-primary border-border-subtle hover:border-transparent hover:!bg-[var(--hover-color)] rounded-[24px] border p-6 transition-all duration-500 hover:shadow-xl dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-primary]"
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: colorHint }}>
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(entry.created_at), "dd MMM yyyy '—' HH:mm", { locale: es })}
+                        </div>
+                        {linkedObj && (
+                          <span 
+                            className="text-[9px] font-bold tracking-widest uppercase px-2 py-1 rounded-md"
+                            style={{ backgroundColor: `${colorHint}15`, color: colorHint }}
                           >
-                            #{tag}
+                            @{linkedObj.title}
                           </span>
-                        ))}
+                        )}
                       </div>
-                      <div className="text-accent flex translate-x-4 items-center gap-2 text-xs font-bold tracking-widest uppercase opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">
-                        Leer más
-                        <ChevronRight className="h-4 w-4" />
-                      </div>
+
+                      <p className="text-sm md:text-base leading-relaxed italic text-text-primary dark:text-[--dark-text-primary] pr-4">
+                        &quot;{entry.text || 'Contenido cifrado...'}&quot;
+                      </p>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 

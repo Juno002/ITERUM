@@ -54,6 +54,20 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Background Sync Worker
+  useEffect(() => {
+    const handleOnline = async () => {
+      const { useSyncQueueStore } = await import('./store/useSyncQueueStore');
+      useSyncQueueStore.getState().flush();
+    };
+
+    window.addEventListener('online', handleOnline);
+    // Also try to flush when the app first starts just in case it wasn't flushed before
+    if (navigator.onLine) handleOnline();
+
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
   const {
     viewMode,
     setViewMode,
@@ -120,6 +134,8 @@ export default function App() {
           loadLogs(uid);
           loadTasks(uid);
           loadObjectives(uid);
+          const { useJournalStore } = await import('./store/useJournalStore');
+          useJournalStore.getState().fetchJournals();
         } catch (error) {
           console.error('Initialization error:', error);
           loadProfile(uid);
