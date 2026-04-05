@@ -92,7 +92,7 @@ export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit }: Obj
   return (
     <div className="bg-bg-primary/40 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md dark:bg-black/60">
       <div
-        className="bg-bg-primary animate-in fade-in zoom-in-95 border-border-subtle w-full max-w-md overflow-hidden rounded-[24px] border shadow-2xl duration-300 dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-primary]"
+        className="bg-bg-primary animate-in fade-in zoom-in-95 border-border-subtle fixed inset-x-0 bottom-0 w-full overflow-hidden rounded-t-[28px] border shadow-2xl duration-300 sm:relative sm:inset-auto sm:max-w-md sm:rounded-[24px] dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-primary]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-border-subtle flex items-center justify-between border-b px-8 py-6 dark:border-[--dark-border-subtle]">
@@ -110,8 +110,17 @@ export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit }: Obj
 
         <form
           onSubmit={handleSubmit}
-          className="iterum-scrollbar max-h-[70vh] space-y-6 overflow-y-auto p-8"
+          className="iterum-scrollbar max-h-[82vh] space-y-6 overflow-y-auto p-6 sm:max-h-[70vh] sm:p-8"
         >
+          <div className="rounded-[18px] border border-accent/20 bg-accent/5 p-4">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-accent uppercase">
+              Meta medible
+            </p>
+            <p className="mt-2 text-sm text-text-primary">
+              Define un resultado claro y, si quieres, vincúlalo a un hábito para que el progreso se actualice automáticamente.
+            </p>
+          </div>
+
           <div>
             <label
               htmlFor="title"
@@ -335,17 +344,19 @@ export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit }: Obj
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-text-muted hover:text-text-primary px-6 py-3 text-sm font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button type="submit" className="iterum-button-primary">
-              {objectiveToEdit ? 'Guardar Cambios' : 'Crear Objetivo'}
-            </button>
+          <div className="sticky bottom-0 -mx-6 border-t border-border-subtle bg-bg-primary/95 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:m-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0">
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-text-muted hover:text-text-primary px-6 py-3 text-sm font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="iterum-button-primary min-w-[140px] justify-center">
+                {objectiveToEdit ? 'Guardar cambios' : 'Crear objetivo'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

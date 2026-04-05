@@ -9,6 +9,7 @@ import { useObjectives } from './hooks/useObjectives';
 import { useDayClosure } from './hooks/useDayClosure';
 import { useGamification } from './hooks/useGamification';
 import { useSync } from './hooks/useSync';
+import { useJournalStore } from './store/useJournalStore';
 import { useUIStore } from './store/useUIStore';
 import { useTheme } from './context/ThemeContext';
 import { Task, Habit, Objective } from './types';
@@ -97,6 +98,7 @@ export default function App() {
   const { loadHabits, loadLogs, habits, logs, addHabit, updateHabit, toggleHabitLog: _toggleHabitLog } = useHabits();
   const { loadObjectives, objectives, addObjective, updateObjective } = useObjectives();
   const { loadTasks, tasks, addTask, updateTask, deleteTask, toggleTask } = useTasks();
+  const addJournal = useJournalStore((state) => state.addJournal);
   const { isSyncing, isRestoring, handleSync, handleRestore } = useSync();
 
   useEffect(() => {
@@ -281,6 +283,10 @@ export default function App() {
   ) => {
     if (taskToEdit) {
       updateTask(taskToEdit.id, taskData);
+    } else if (taskData.type === 'journal') {
+      void addJournal(
+        [taskData.title, taskData.description].filter(Boolean).join('\n\n'),
+      );
     } else if (taskData.type === 'habit') {
       addHabit({
         name: taskData.title,

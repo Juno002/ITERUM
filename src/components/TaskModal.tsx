@@ -63,6 +63,15 @@ export function TaskModal({
   const [objDeadline, setObjDeadline] = useState('');
   const isGuidedCapture = !taskToEdit && initialType !== 'task';
   const activeLabel = ENTITY_TYPES.find((item) => item.type === type)?.label ?? 'Elemento';
+  const submitLabel = taskToEdit
+    ? 'Guardar cambios'
+    : type === 'habit'
+      ? 'Crear hábito'
+      : type === 'objective'
+        ? 'Crear objetivo'
+        : type === 'journal'
+          ? 'Guardar nota'
+          : 'Crear tarea';
 
   useEffect(() => {
     if (isOpen) {
@@ -214,6 +223,27 @@ export function TaskModal({
             />
           </div>
 
+          <div className="rounded-[18px] border border-border-subtle bg-bg-secondary/50 p-4 dark:border-[--dark-border-subtle] dark:bg-[--dark-bg-secondary]/50">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-text-muted uppercase">
+              {type === 'habit'
+                ? 'Rutina recurrente'
+                : type === 'objective'
+                  ? 'Resultado a mediano plazo'
+                  : type === 'journal'
+                    ? 'Reflexión rápida'
+                    : 'Acción concreta'}
+            </p>
+            <p className="mt-2 text-sm text-text-primary">
+              {type === 'habit'
+                ? 'Define una acción pequeña que quieras repetir.'
+                : type === 'objective'
+                  ? 'Ponle número, unidad y fecha para que el progreso sea visible.'
+                  : type === 'journal'
+                    ? 'Captura una idea o reflexión sin fricción.'
+                    : 'Escribe algo específico que puedas completar hoy.'}
+            </p>
+          </div>
+
           {type === 'habit' && (
             <div className="animate-in fade-in slide-in-from-top-2 space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -337,7 +367,7 @@ export function TaskModal({
             </div>
           )}
 
-          {type !== 'objective' && (
+          {type !== 'objective' && type !== 'journal' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
@@ -393,27 +423,29 @@ export function TaskModal({
             />
           </div>
 
-          <div>
-            <label className="text-text-muted mb-3 block text-xs font-bold tracking-widest uppercase">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    'h-7 w-7 rounded-full border-2 transition-all',
-                    color === c
-                      ? 'border-text-primary scale-125 shadow-lg'
-                      : 'border-transparent hover:scale-110',
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+          {type !== 'journal' && (
+            <div>
+              <label className="text-text-muted mb-3 block text-xs font-bold tracking-widest uppercase">
+                Color
+              </label>
+              <div className="flex items-center gap-3">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    className={cn(
+                      'h-7 w-7 rounded-full border-2 transition-all',
+                      color === c
+                        ? 'border-text-primary scale-125 shadow-lg'
+                        : 'border-transparent hover:scale-110',
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="sticky bottom-0 -mx-6 border-t border-border-subtle bg-bg-primary/95 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:m-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0">
             <div className="flex justify-end gap-3">
@@ -425,7 +457,7 @@ export function TaskModal({
               Cancelar
             </button>
             <button type="submit" className="iterum-button-primary min-w-[140px] justify-center">
-              {taskToEdit ? 'Guardar Cambios' : 'Capturar'}
+              {submitLabel}
             </button>
             </div>
           </div>
