@@ -7,10 +7,8 @@ interface ObjectiveState {
   objectives: Objective[];
   isLoading: boolean;
   error: string | null;
-  fetchObjectives: () => Promise<void>;
-  loadObjectives: () => Promise<void>;
   setObjectives: (objectives: Objective[]) => void;
-  addObjective: (objective: Omit<Objective, 'id' | 'user_id' | 'createdAt'>) => Promise<void>;
+  addObjective: (objective: Omit<Objective, 'id' | 'createdAt'>) => Promise<void>;
   updateObjective: (id: string, updates: Partial<Objective>) => Promise<void>;
   deleteObjective: (id: string) => Promise<void>;
 }
@@ -33,8 +31,6 @@ export const useObjectiveStore = create<ObjectiveState>()(
       objectives: [],
       isLoading: false,
       error: null,
-      fetchObjectives: async () => {},
-      loadObjectives: async () => {},
       setObjectives: (objectives) => set({ objectives }),
       addObjective: async (objectiveData) => {
         const newObjective: Objective = {

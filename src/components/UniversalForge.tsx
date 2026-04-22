@@ -241,7 +241,7 @@ export function UniversalForge({ isFabExpanded }: UniversalForgeProps) {
             key="palette"
             layoutId="forge-container"
             className={cn(
-              "flex flex-col px-4 overflow-hidden transition-colors duration-300 pointer-events-auto",
+              "flex w-full max-w-xl flex-col overflow-hidden rounded-[28px] px-4 transition-colors duration-300 pointer-events-auto",
               getDynamicStyles()
             )}
             style={{

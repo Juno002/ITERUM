@@ -14,7 +14,7 @@ Iterum no es solo otra aplicación de lista de tareas. Es un sistema de forja pe
 
 - **Arquitectura 100% local y offline:** Puedes abrir ITERUM y usarla inmediatamente sin registrarte. Tareas, hábitos, objetivos, diario y progreso quedan guardados en `localStorage`.
 - **Persistencia adaptable:** La app ya expone un `IterumStorageAdapter` para poder reemplazar `localStorage` cuando integres ITERUM dentro de un proyecto mayor.
-- **Jugo Sensorial (Sensory UX):** La app recompensa cada acción positiva con un motor de feedback propio (sonidos sintetizados vía Web Audio API, animaciones interactivas usando Framer Motion, micro haptics y explosiones de confetti) optimizado para no sumar un solo KB de dependencias innecesarias.
+- **Jugo Sensorial (Sensory UX):** La app recompensa cada acción positiva con un motor de feedback propio (sonidos sintetizados vía Web Audio API, animaciones interactivas usando Motion, micro haptics y explosiones de confetti) optimizado para no sumar un solo KB de dependencias innecesarias.
 - **Gestión de Hábitos:** Seguimiento cuantitativo y cualitativo de tus rutinas diarias con sistema de rachas (streaks) y recordatorios predictivos.
 - **Objetivos y Hitos:** Define metas a largo plazo y divídelas en pasos accionables, acumulando progresión de forma gamificada.
 - **Modo Foco:** Interfaz inmersiva para bloquear distracciones durante la ejecución de las tareas críticas.
@@ -85,7 +85,7 @@ API pública disponible:
 ### ✅ Fase 2: Persistencia Offline
 - Stores locales rehidratables sin cuenta ni backend.
 - Adapter de persistencia configurable para integración futura.
-- Eliminación de dependencias runtime con Supabase/Auth.
+- Eliminación de dependencias runtime de cuenta, backend y sincronización remota.
 
 ### ✅ Fase 3: Fiabilidad y Resiliencia
 - `ErrorBoundary` global para eliminar blank-screens.
@@ -97,7 +97,7 @@ API pública disponible:
 - Desarrollo de API de feedback táctil, auditiva y visual (`feedback.ts`).
 - Sonido 100% sintetizado (0 archivos pesados introducidos).
 - Confetti renderizado sobre Canvas en celebraciones de rachas o 'Level Ups'.
-- Animaciones interactivas ("spring pops" de Framer Motion) respondiendo al swipe/completado.
+- Animaciones interactivas ("spring pops" de Motion) respondiendo al swipe/completado.
 
 ---
 

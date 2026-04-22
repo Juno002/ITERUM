@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ThemeContext, type Theme } from './theme-context';
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light';
+
+  const saved = window.localStorage.getItem('iterum_theme');
+  if (saved === 'light' || saved === 'dark') return saved;
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('iterum_theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return getInitialTheme();
   });
 
   useEffect(() => {
-    localStorage.setItem('iterum_theme', theme);
+    if (typeof window === 'undefined') return;
+
+    window.localStorage.setItem('iterum_theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

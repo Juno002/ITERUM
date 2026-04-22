@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { ThemeProvider } from '../context/ThemeContext';
 import {
   createLocalStorageAdapter,
@@ -11,10 +10,10 @@ export interface IterumProviderProps {
   storage?: IterumStorageAdapter;
 }
 
+const defaultStorage = createLocalStorageAdapter();
+
 export function IterumProvider({ children, storage }: IterumProviderProps) {
-  useEffect(() => {
-    setIterumStorageAdapter(storage ?? createLocalStorageAdapter());
-  }, [storage]);
+  setIterumStorageAdapter(storage ?? defaultStorage);
 
   return <ThemeProvider>{children}</ThemeProvider>;
 }

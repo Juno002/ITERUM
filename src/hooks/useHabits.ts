@@ -10,8 +10,6 @@ export function useHabits() {
     toggleHabitLog,
     setHabits,
     setLogs,
-    loadHabits,
-    loadLogs,
   } = useHabitStore();
   return {
     habits,
@@ -22,7 +20,5 @@ export function useHabits() {
     toggleHabitLog,
     setHabits,
     setLogs,
-    loadHabits,
-    loadLogs,
   };
 }

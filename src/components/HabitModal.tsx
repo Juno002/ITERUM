@@ -1,8 +1,7 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { X, type LucideIcon, Zap, Target, Clock, Sparkles } from 'lucide-react';
 import { Habit, HabitType } from '../types';
 import { cn } from '../utils';
-import { GoogleGenAI } from '@google/genai';
 import { useObjectiveStore } from '../store/useObjectiveStore';
 import { useAppStatsStore } from '../store/useAppStatsStore';
 
@@ -36,91 +35,53 @@ const FREQUENCIES = [
   { value: 'everyXdays:2', label: 'Cada 2 días' },
 ];
 
-export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalProps) {
-  const objectives = useObjectiveStore((state) => state.objectives);
-  const userLevel = useAppStatsStore((state) => state.stats.level);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [frequency, setFrequency] = useState('daily');
-  const [type, setType] = useState<HabitType>('yesno');
-  const [targetValue, setTargetValue] = useState<number>(1);
-  const [unit, setUnit] = useState('');
-  const [category, setCategory] = useState('');
-  const [color, setColor] = useState(COLORS[0]);
-  const [reminderTime, setReminderTime] = useState('');
-  const [selectedObjectiveIds, setSelectedObjectiveIds] = useState<string[]>([]);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-
-  const suggestWithAI = async () => {
-    if (!name.trim() || !navigator.onLine) return;
-    setIsSuggesting(true);
-    try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        setIsSuggesting(false);
-        return;
-      }
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Sugiere configuración para un hábito llamado "${name}". 
-        Responde SOLO en JSON con este formato: 
-        { "frequency": "daily" | "weekly:Mon,Wed,Fri" | "everyXdays:2", "category": "string", "description": "string", "type": "yesno" | "numeric" | "timer", "unit": "string", "targetValue": number }`,
-        config: { responseMimeType: 'application/json' },
-      });
-
-      const suggestion = JSON.parse(response.text || '{}');
-      if (suggestion.frequency) setFrequency(suggestion.frequency);
-      if (suggestion.category) setCategory(suggestion.category);
-      if (suggestion.description) setDescription(suggestion.description);
-      if (suggestion.type) setType(suggestion.type);
-      if (suggestion.unit) setUnit(suggestion.unit);
-      if (suggestion.targetValue) setTargetValue(suggestion.targetValue);
-    } catch (error: unknown) {
-      // Fallback for network/adblocker errors
-      const errorStr = error instanceof Error ? error.message : String(error);
-      if (errorStr.includes('xhr error') || errorStr.includes('fetch')) {
-        console.warn('AI Suggestion network error (fallback applied):', errorStr);
-        setFrequency('daily');
-        setType('yesno');
-        setDescription('Un buen hábito para empezar.');
-      } else {
-        console.error('AI Suggestion failed', error);
-      }
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      if (habitToEdit) {
-        setName(habitToEdit.name);
-        setDescription(habitToEdit.description || '');
-        setFrequency(habitToEdit.frequency);
-        setType(habitToEdit.type);
-        setTargetValue(habitToEdit.targetValue || 1);
-        setUnit(habitToEdit.unit || '');
-        setCategory(habitToEdit.category || '');
-        setColor(habitToEdit.color || COLORS[0]);
-        setReminderTime(habitToEdit.reminderTime || '');
-        setSelectedObjectiveIds(habitToEdit.objectiveIds || []);
-      } else {
-        setName('');
-        setDescription('');
-        setFrequency('daily');
-        setType('yesno');
-        setTargetValue(1);
-        setUnit('');
-        setCategory('');
-        setColor(COLORS[0]);
-        setReminderTime('');
-        setSelectedObjectiveIds([]);
-      }
-    }
-  }, [isOpen, habitToEdit]);
+export function HabitModal(props: HabitModalProps) {
+  const { isOpen, habitToEdit } = props;
 
   if (!isOpen) return null;
+
+  return <HabitModalContent key={habitToEdit?.id ?? 'new'} {...props} />;
+}
+
+function HabitModalContent({ onClose, onSave, habitToEdit }: HabitModalProps) {
+  const objectives = useObjectiveStore((state) => state.objectives);
+  const appLevel = useAppStatsStore((state) => state.stats.level);
+  const [name, setName] = useState(habitToEdit?.name ?? '');
+  const [description, setDescription] = useState(habitToEdit?.description ?? '');
+  const [frequency, setFrequency] = useState(habitToEdit?.frequency ?? 'daily');
+  const [type, setType] = useState<HabitType>(habitToEdit?.type ?? 'yesno');
+  const [targetValue, setTargetValue] = useState<number>(habitToEdit?.targetValue ?? 1);
+  const [unit, setUnit] = useState(habitToEdit?.unit ?? '');
+  const [category, setCategory] = useState(habitToEdit?.category ?? '');
+  const [color, setColor] = useState(habitToEdit?.color ?? COLORS[0]);
+  const [reminderTime, setReminderTime] = useState(habitToEdit?.reminderTime ?? '');
+  const [selectedObjectiveIds, setSelectedObjectiveIds] = useState<string[]>(
+    habitToEdit?.objectiveIds ?? [],
+  );
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
+  const suggestLocally = () => {
+    if (!name.trim()) return;
+    setIsSuggesting(true);
+
+    window.setTimeout(() => {
+      const normalizedName = name.toLowerCase();
+      const looksNumeric = ['leer', 'agua', 'pasos', 'km', 'correr', 'páginas', 'paginas'].some(
+        (token) => normalizedName.includes(token),
+      );
+      const looksTimed = ['meditar', 'estudiar', 'entrenar', 'trabajar', 'foco'].some((token) =>
+        normalizedName.includes(token),
+      );
+
+      setFrequency('daily');
+      setCategory(looksTimed ? 'Foco' : looksNumeric ? 'Progreso' : 'Disciplina');
+      setType(looksTimed ? 'timer' : looksNumeric ? 'numeric' : 'yesno');
+      setTargetValue(looksTimed ? 20 : looksNumeric ? 1 : 1);
+      setUnit(looksTimed ? 'min' : looksNumeric ? 'unidad' : '');
+      setDescription((current) => current || 'Un hábito pequeño, claro y repetible para fortalecer tu día.');
+      setIsSuggesting(false);
+    }, 250);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -172,10 +133,10 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalP
               >
                 Nombre del Hábito
               </label>
-              {name.trim() && !habitToEdit && navigator.onLine && (
+              {name.trim() && !habitToEdit && (
                 <button
                   type="button"
-                  onClick={suggestWithAI}
+                  onClick={suggestLocally}
                   disabled={isSuggesting}
                   className={cn(
                     'flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase transition-all',
@@ -183,7 +144,7 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalP
                   )}
                 >
                   <Sparkles className="h-3 w-3" />
-                  {isSuggesting ? 'Sugiriendo...' : 'Sugerir con IA'}
+                  {isSuggesting ? 'Sugiriendo...' : 'Sugerir'}
                 </button>
               )}
             </div>
@@ -341,7 +302,7 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalP
               <label className="text-text-muted block text-xs font-bold tracking-widest uppercase">
                 Color Distintivo
               </label>
-              {userLevel < 2 && (
+              {appLevel < 2 && (
                 <span className="text-accent flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase">
                   <Zap className="h-3 w-3" />
                   Nivel 2 Desbloquea más
@@ -350,7 +311,7 @@ export function HabitModal({ isOpen, onClose, onSave, habitToEdit }: HabitModalP
             </div>
             <div className="flex items-center gap-3">
               {COLORS.map((c, idx) => {
-                const isLocked = userLevel < 2 && idx > 1;
+                const isLocked = appLevel < 2 && idx > 1;
                 return (
                   <button
                     key={c}

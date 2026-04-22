@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { DayClosure, UserStats, WeeklyInsight } from '../types';
+import { AppStats, DayClosure, WeeklyInsight } from '../types';
 import { iterumStateStorage } from '../core/storage/iterumStorage';
 
 interface AppStatsState {
-  stats: UserStats;
+  stats: AppStats;
   closedDays: DayClosure[];
   weeklyInsights: WeeklyInsight[];
-  setStats: (stats: UserStats) => void;
+  setStats: (stats: AppStats) => void;
   addExp: (
     amount: number,
     type: 'discipline' | 'consistency',
@@ -22,7 +22,7 @@ interface AppStatsState {
 
 const EXP_PER_LEVEL = 100;
 
-const defaultStats: UserStats = {
+const defaultStats: AppStats = {
   discipline: { exp: 0, level: 1 },
   consistency: { exp: 0, level: 1 },
   totalExp: 0,

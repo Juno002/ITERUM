@@ -5,7 +5,6 @@ import { iterumStateStorage } from '../core/storage/iterumStorage';
 
 interface TaskState {
   tasks: Task[];
-  loadTasks: () => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -25,7 +24,6 @@ export const useTaskStore = create<TaskState>()(
   persist(
     (set) => ({
       tasks: [],
-      loadTasks: async () => {},
       addTask: (task) => {
         const newTask: Task = {
           ...task,

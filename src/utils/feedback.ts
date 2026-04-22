@@ -17,7 +17,7 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
-// Check if user has muted sounds
+// Check if sounds are muted for this browser.
 function isMuted(): boolean {
   return localStorage.getItem('iterum_sound_muted') === 'true';
 }

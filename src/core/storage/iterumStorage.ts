@@ -6,7 +6,7 @@ import type {
   JournalEntry,
   Objective,
   Task,
-  UserStats,
+  AppStats,
   WeeklyInsight,
 } from '../../types';
 
@@ -18,13 +18,25 @@ const STORAGE_KEYS = {
   appStats: 'iterum_app_stats_storage',
 } as const;
 
+const DEFAULT_APP_STATS: AppStatsState = {
+  stats: {
+    discipline: { exp: 0, level: 1 },
+    consistency: { exp: 0, level: 1 },
+    totalExp: 0,
+    level: 1,
+    onboardingCompleted: false,
+  },
+  closedDays: [],
+  weeklyInsights: [],
+};
+
 type PersistEnvelope<T> = {
   state: T;
   version: number;
 };
 
 type AppStatsState = {
-  stats: UserStats;
+  stats: AppStats;
   closedDays: DayClosure[];
   weeklyInsights: WeeklyInsight[];
 };
@@ -94,41 +106,103 @@ function serializeEnvelope<T>(state: T): string {
   return JSON.stringify({ state, version: 0 } satisfies PersistEnvelope<T>);
 }
 
-function createEntityReader<T>(storage: Storage, key: string, selector: (state: T) => unknown): () => unknown {
+function createEntityReader<T, R>(storage: Storage, key: string, selector: (state: T) => R): () => R {
   return () => {
     const envelope = parseEnvelope<T | Record<string, never>>(storage.getItem(key), {});
     return selector(envelope as T);
   };
 }
 
+function reviveTask(task: Task): Task {
+  return {
+    ...task,
+    date: new Date(task.date),
+    createdAt: new Date(task.createdAt),
+  };
+}
+
+function reviveHabit(habit: Habit): Habit {
+  return {
+    ...habit,
+    createdAt: new Date(habit.createdAt),
+    archivedAt: habit.archivedAt ? new Date(habit.archivedAt) : undefined,
+  };
+}
+
+function reviveHabitLog(log: HabitLog): HabitLog {
+  return {
+    ...log,
+    createdAt: new Date(log.createdAt),
+  };
+}
+
+function reviveObjective(objective: Objective): Objective {
+  return {
+    ...objective,
+    createdAt: new Date(objective.createdAt),
+    deadline: objective.deadline ? new Date(objective.deadline) : undefined,
+    milestones: objective.milestones?.map((milestone) => ({
+      ...milestone,
+      completedAt: milestone.completedAt ? new Date(milestone.completedAt) : undefined,
+    })),
+  };
+}
+
+function reviveStats(state: AppStatsState): AppStatsState {
+  return {
+    ...state,
+    closedDays: (state.closedDays ?? []).map((day) => ({
+      ...day,
+      closedAt: new Date(day.closedAt),
+      insight: day.insight
+        ? {
+            ...day.insight,
+            generatedAt: day.insight.generatedAt ? new Date(day.insight.generatedAt) : undefined,
+          }
+        : undefined,
+    })),
+    weeklyInsights: (state.weeklyInsights ?? []).map((insight) => ({
+      ...insight,
+      generatedAt: insight.generatedAt ? new Date(insight.generatedAt) : undefined,
+    })),
+  };
+}
+
 export function createLocalStorageAdapter(): IterumStorageAdapter {
   const storage = resolveStorage();
 
-  const readTasks = createEntityReader<{ tasks: Task[] }>(storage, STORAGE_KEYS.tasks, (state) => state.tasks ?? []);
-  const readHabitsState = createEntityReader<{ habits: Habit[]; logs: HabitLog[] }>(
+  const readTasks = createEntityReader<{ tasks: Task[] }, Task[]>(
+    storage,
+    STORAGE_KEYS.tasks,
+    (state) => (state.tasks ?? []).map(reviveTask),
+  );
+  const readHabitsState = createEntityReader<
+    { habits: Habit[]; logs: HabitLog[] },
+    { habits?: Habit[]; logs?: HabitLog[] }
+  >(
     storage,
     STORAGE_KEYS.habits,
     (state) => state,
   );
-  const readObjectives = createEntityReader<{ objectives: Objective[] }>(
+  const readObjectives = createEntityReader<{ objectives: Objective[] }, Objective[]>(
     storage,
     STORAGE_KEYS.objectives,
-    (state) => state.objectives ?? [],
+    (state) => (state.objectives ?? []).map(reviveObjective),
   );
-  const readJournals = createEntityReader<{ journals: JournalEntry[] }>(
+  const readJournals = createEntityReader<{ journals: JournalEntry[] }, JournalEntry[]>(
     storage,
     STORAGE_KEYS.journals,
     (state) => state.journals ?? [],
   );
-  const readStats = createEntityReader<AppStatsState>(storage, STORAGE_KEYS.appStats, (state) => state);
+  const readStats = createEntityReader<AppStatsState, AppStatsState>(storage, STORAGE_KEYS.appStats, reviveStats);
 
   return {
     getItem: (key) => storage.getItem(key),
     setItem: (key, value) => storage.setItem(key, value),
     removeItem: (key) => storage.removeItem(key),
-    readTasks: () => readTasks() as Task[],
+    readTasks: () => readTasks(),
     writeTasks: (tasks) => storage.setItem(STORAGE_KEYS.tasks, serializeEnvelope({ tasks })),
-    readHabits: () => ((readHabitsState() as { habits?: Habit[] }).habits ?? []),
+    readHabits: () => (((readHabitsState() as { habits?: Habit[] }).habits ?? []).map(reviveHabit)),
     writeHabits: (habits) => {
       const current = parseEnvelope<{ habits: Habit[]; logs: HabitLog[] }>(storage.getItem(STORAGE_KEYS.habits), {
         habits: [],
@@ -136,7 +210,8 @@ export function createLocalStorageAdapter(): IterumStorageAdapter {
       });
       storage.setItem(STORAGE_KEYS.habits, serializeEnvelope({ ...current, habits }));
     },
-    readHabitLogs: () => ((readHabitsState() as { logs?: HabitLog[] }).logs ?? []),
+    readHabitLogs: () =>
+      (((readHabitsState() as { logs?: HabitLog[] }).logs ?? []).map(reviveHabitLog)),
     writeHabitLogs: (logs) => {
       const current = parseEnvelope<{ habits: Habit[]; logs: HabitLog[] }>(storage.getItem(STORAGE_KEYS.habits), {
         habits: [],
@@ -144,23 +219,15 @@ export function createLocalStorageAdapter(): IterumStorageAdapter {
       });
       storage.setItem(STORAGE_KEYS.habits, serializeEnvelope({ ...current, logs }));
     },
-    readObjectives: () => readObjectives() as Objective[],
+    readObjectives: () => readObjectives(),
     writeObjectives: (objectives) =>
       storage.setItem(STORAGE_KEYS.objectives, serializeEnvelope({ objectives })),
-    readJournals: () => readJournals() as JournalEntry[],
+    readJournals: () => readJournals(),
     writeJournals: (journals) => storage.setItem(STORAGE_KEYS.journals, serializeEnvelope({ journals })),
-    readStats: () =>
-      (readStats() as AppStatsState) ?? {
-        stats: {
-          discipline: { exp: 0, level: 1 },
-          consistency: { exp: 0, level: 1 },
-          totalExp: 0,
-          level: 1,
-          onboardingCompleted: false,
-        },
-        closedDays: [],
-        weeklyInsights: [],
-      },
+    readStats: () => {
+      const statsState = readStats();
+      return statsState.stats ? statsState : DEFAULT_APP_STATS;
+    },
     writeStats: (stats) => storage.setItem(STORAGE_KEYS.appStats, serializeEnvelope(stats)),
   };
 }

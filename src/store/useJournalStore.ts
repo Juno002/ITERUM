@@ -7,7 +7,6 @@ interface JournalState {
   journals: JournalEntry[];
   isLoading: boolean;
   error: string | null;
-  fetchJournals: () => Promise<void>;
   addJournal: (text: string, objectiveId?: string) => Promise<void>;
   deleteJournal: (id: string) => Promise<void>;
 }
@@ -25,7 +24,6 @@ export const useJournalStore = create<JournalState>()(
       journals: [],
       isLoading: false,
       error: null,
-      fetchJournals: async () => {},
       addJournal: async (text, objectiveId) => {
         const rawPayload = JSON.stringify({ text, objectiveId: objectiveId ?? null });
         const optimisticEntry: JournalEntry = {

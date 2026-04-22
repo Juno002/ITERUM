@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useUIStore } from '../store/useUIStore';
 import { useObjectiveStore } from '../store/useObjectiveStore';
+import { useJournalStore } from '../store/useJournalStore';
 import { getDailyPrompt } from '../utils/prompts';
 import { feedback } from '../utils/feedback';
 import { ArrowRight, Target } from 'lucide-react';
@@ -33,38 +34,29 @@ function RichTextOverlay({ text, colorHint, linkedWord }: { text: string, colorH
 
 export function CeremonyChamber() {
   const { ceremonyState, setCeremonyState } = useUIStore();
-  const objectives = useObjectiveStore(state => state.objectives);
-  const fetchObjectives = useObjectiveStore(state => state.fetchObjectives);
+  const objectives = useObjectiveStore((state) => state.objectives);
 
   const [journalText, setJournalText] = useState('');
-  const [prompt, setPrompt] = useState('');
+  const [prompt] = useState(() => getDailyPrompt());
   const [recoveryPhraseVisible, setRecoveryPhraseVisible] = useState<string | null>(null);
 
-  // Mention State
-  const [mentionQuery, setMentionQuery] = useState<{ query: string, index: number, prefix: string } | null>(null);
   const [linkedObjective, setLinkedObjective] = useState<{ id: string, name: string, color: string, word: string } | null>(null);
 
   useEffect(() => {
     if (ceremonyState === 'entering') {
-      fetchObjectives();
-      setPrompt(getDailyPrompt());
-      // Auto move to ritual after a brief pause
       const t = setTimeout(() => {
         setCeremonyState('ritual');
       }, 3000);
       return () => clearTimeout(t);
     }
-  }, [ceremonyState, setCeremonyState, fetchObjectives]);
+  }, [ceremonyState, setCeremonyState]);
 
-  // Handle Mentions Parsing
-  useEffect(() => {
-    // Detect if the user is typing a mention (e.g. "@..." or "#...") at the end of the text
+  const mentionQuery = useMemo(() => {
     const match = journalText.match(/(?:^|\s)([@#])(\w*)$/);
     if (match && match.index !== undefined) {
-      setMentionQuery({ prefix: match[1], query: match[2].toLowerCase(), index: match.index });
-    } else {
-      setMentionQuery(null);
+      return { prefix: match[1], query: match[2].toLowerCase(), index: match.index };
     }
+    return null;
   }, [journalText]);
 
   const activeObjectives = objectives.filter(o => o.status !== 'archived');
@@ -83,7 +75,6 @@ export function CeremonyChamber() {
     const replacement = `${spacePrefix}${mentionQuery.prefix}${objective.title.replace(/\s+/g, '')} `;
     
     setJournalText(before + replacement);
-    setMentionQuery(null);
     setLinkedObjective({ 
       id: objective.id, 
       name: objective.title, 
@@ -107,10 +98,9 @@ export function CeremonyChamber() {
         setRecoveryPhraseVisible(phrase);
     }
     
-    const { useJournalStore } = await import('../store/useJournalStore');
     await useJournalStore.getState().addJournal(journalText, linkedObjective?.id);
     
-    console.log("[Iterum Secure Enclave] Journal Entry Sealed with E2EE");
+    console.log('[Iterum Local Vault] Journal entry saved locally');
     
     feedback.celebrate();
     setCeremonyState('sealed');

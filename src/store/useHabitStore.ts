@@ -7,8 +7,6 @@ import { iterumStateStorage } from '../core/storage/iterumStorage';
 interface HabitState {
   habits: Habit[];
   logs: HabitLog[];
-  loadHabits: () => Promise<void>;
-  loadLogs: () => Promise<void>;
   addHabit: (habitData: Omit<Habit, 'id' | 'isActive' | 'createdAt'>) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
@@ -37,8 +35,6 @@ export const useHabitStore = create<HabitState>()(
     (set) => ({
       habits: [],
       logs: [],
-      loadHabits: async () => {},
-      loadLogs: async () => {},
       addHabit: (habitData) => {
         const newHabit: Habit = {
           ...habitData,

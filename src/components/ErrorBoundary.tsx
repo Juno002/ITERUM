@@ -23,7 +23,6 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary] Uncaught error:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
-    // Future: Send to Sentry, LogRocket, etc.
   }
 
   handleRetry = () => {
@@ -43,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Algo salió mal
             </h2>
             <p className="mb-6 text-sm leading-relaxed text-[#8A8A8A]">
-              Ha ocurrido un error inesperado. Tu progreso está seguro en la nube.
+              Ha ocurrido un error inesperado. Tu progreso local seguirá disponible al recargar.
             </p>
 
             {this.state.error && (

@@ -8,11 +8,11 @@ import { Lock, Zap } from 'lucide-react';
 interface WeekViewProps {
   habits: Habit[];
   logs: HabitLog[];
-  userLevel: number;
+  appLevel: number;
 }
 
-export function WeekView({ habits, logs, userLevel }: WeekViewProps) {
-  const isLocked = userLevel < 3;
+export function WeekView({ habits, logs, appLevel }: WeekViewProps) {
+  const isLocked = appLevel < 3;
 
   const days = useMemo(() => {
     const today = startOfToday();
@@ -36,7 +36,7 @@ export function WeekView({ habits, logs, userLevel }: WeekViewProps) {
         <div className="bg-accent/10 flex items-center gap-2 rounded-full px-4 py-2">
           <Zap className="text-accent h-4 w-4" />
           <span className="text-accent text-xs font-bold tracking-widest uppercase">
-            Nivel {userLevel} / 3
+            Nivel {appLevel} / 3
           </span>
         </div>
       </div>

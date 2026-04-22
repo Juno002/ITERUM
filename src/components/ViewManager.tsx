@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewMode, Habit, HabitLog, Objective, Task, WeeklyInsight, UserStats } from '../types';
+import { ViewMode, Habit, HabitLog, Objective, Task, WeeklyInsight, AppStats } from '../types';
 import { HabitCard } from './HabitCard';
 import { ObjectiveCard } from './ObjectiveCard';
 import { JournalView } from './JournalView';
@@ -15,7 +15,7 @@ interface ViewManagerProps {
   habits: Habit[];
   logs: HabitLog[];
   weeklyInsights: WeeklyInsight[];
-  stats: UserStats;
+  stats: AppStats;
   toggleHabitLog: (id: string, date: Date, value?: number, note?: string) => void;
   handleEditHabit: (habit: Habit) => void;
   handleEditObjective: (objective: Objective) => void;
@@ -127,7 +127,7 @@ export const ViewManager: React.FC<ViewManagerProps> = ({
               </p>
             </div>
           </div>
-          <WeekView habits={habits} logs={logs} userLevel={stats.level} />
+          <WeekView habits={habits} logs={logs} appLevel={stats.level} />
         </div>
       ) : (
         <CalendarView

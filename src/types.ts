@@ -38,7 +38,6 @@ export type Milestone = {
 
 export type Objective = {
   id: string;
-  user_id?: string;
   title: string;
   description?: string;
   targetValue: number;
@@ -62,13 +61,11 @@ export type Task = {
   completed: boolean;
   color?: string;
   createdAt: Date;
-  migrated?: boolean;
 };
 
 export type JournalEntry = {
   id: string;
-  user_id?: string;
-  payload: string; // The encrypted E2EE payload
+  payload: string;
   created_at: string;
   
   // Transient decrypted state (populated via Smart Merge)
@@ -98,7 +95,7 @@ export type DayClosure = {
   insight?: WeeklyInsight; // Store the weekly insight if generated this day
 };
 
-export type UserStats = {
+export type AppStats = {
   discipline: { exp: number; level: number };
   consistency: { exp: number; level: number };
   totalExp: number;

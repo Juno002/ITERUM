@@ -6,18 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  {
-    ignores: [
-      'dist',
-      'public/ITERUM-main/**',
-      'dist/ITERUM-main/**',
-      'src/App.tsx',
-      'src/components/Auth.tsx',
-      'src/services/dbService.ts',
-      'src/services/migrationService.ts',
-      'src/store/useUserStore.ts',
-    ],
-  },
+  { ignores: ['dist', 'public/ITERUM-main/**', 'dist/ITERUM-main/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

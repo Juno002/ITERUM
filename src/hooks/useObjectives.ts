@@ -7,7 +7,6 @@ export function useObjectives() {
     updateObjective,
     deleteObjective,
     setObjectives,
-    loadObjectives,
   } = useObjectiveStore();
   return {
     objectives,
@@ -15,6 +14,5 @@ export function useObjectives() {
     updateObjective,
     deleteObjective,
     setObjectives,
-    loadObjectives,
   };
 }

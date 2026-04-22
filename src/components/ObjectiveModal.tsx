@@ -3,7 +3,6 @@ import { X, Target, Zap, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Objective, Milestone } from '../types';
 import { cn } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
 import { useHabitStore } from '../store/useHabitStore';
 
 interface ObjectiveModalProps {
@@ -47,7 +46,7 @@ export function ObjectiveModal({ isOpen, onClose, onSave, objectiveToEdit }: Obj
   const addMilestone = () => {
     if (!newMilestoneTitle.trim()) return;
     const newMilestone: Milestone = {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       title: newMilestoneTitle.trim(),
       completed: false,
     };

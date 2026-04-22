@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldHabitOccurOnDate, calculateCurrentStreak } from './habitUtils';
+import { shouldHabitOccurOnDate, calculateCurrentStreak, calculateObjectiveProgress } from './habitUtils';
 import { Habit, HabitLog } from '../types';
 import { subDays, format } from 'date-fns';
 
@@ -67,6 +67,72 @@ describe('habitUtils', () => {
       ];
 
       expect(calculateCurrentStreak(logs, habit)).toBe(1);
+    });
+  });
+
+  describe('calculateObjectiveProgress', () => {
+    it('sums numeric habit logs linked to an objective', () => {
+      const objective = {
+        id: 'objective-1',
+        title: 'Run 10k',
+        targetValue: 10,
+        currentValue: 0,
+        unit: 'km',
+        color: '#C9935A',
+        status: 'active' as const,
+        progress: 0,
+        createdAt: new Date(),
+      };
+      const habits: Habit[] = [
+        {
+          id: 'habit-1',
+          name: 'Run',
+          frequency: 'daily',
+          type: 'numeric',
+          unit: 'km',
+          objectiveIds: ['objective-1'],
+          createdAt: new Date(),
+          isActive: true,
+        },
+      ];
+      const logs: HabitLog[] = [
+        { id: 'log-1', habitId: 'habit-1', date: '2026-04-21', completed: true, value: 3, createdAt: new Date() },
+        { id: 'log-2', habitId: 'habit-1', date: '2026-04-22', completed: true, value: 4, createdAt: new Date() },
+      ];
+
+      expect(calculateObjectiveProgress(objective, habits, logs)).toBe(7);
+    });
+
+    it('counts yes/no check-ins linked from the objective side', () => {
+      const objective = {
+        id: 'objective-1',
+        title: 'Write consistently',
+        targetValue: 30,
+        currentValue: 0,
+        unit: 'sessions',
+        color: '#C9935A',
+        status: 'active' as const,
+        progress: 0,
+        linkedHabitId: 'habit-1',
+        createdAt: new Date(),
+      };
+      const habits: Habit[] = [
+        {
+          id: 'habit-1',
+          name: 'Write',
+          frequency: 'daily',
+          type: 'yesno',
+          createdAt: new Date(),
+          isActive: true,
+        },
+      ];
+      const logs: HabitLog[] = [
+        { id: 'log-1', habitId: 'habit-1', date: '2026-04-21', completed: true, createdAt: new Date() },
+        { id: 'log-2', habitId: 'habit-1', date: '2026-04-22', completed: false, createdAt: new Date() },
+        { id: 'log-3', habitId: 'habit-1', date: '2026-04-23', completed: true, createdAt: new Date() },
+      ];
+
+      expect(calculateObjectiveProgress(objective, habits, logs)).toBe(2);
     });
   });
 });

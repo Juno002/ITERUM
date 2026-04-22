@@ -2,7 +2,7 @@ import React from 'react';
 import { Target, ChevronRight, BookOpen, Archive as ArchiveIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import {
-  UserStats,
+  AppStats,
   Objective,
   ViewMode,
   Habit,
@@ -14,7 +14,7 @@ import {
 import { cn } from '../utils';
 
 interface SidebarProps {
-  stats: UserStats;
+  stats: AppStats;
   objectivesWithProgress: Objective[];
   objectives: Objective[];
   setViewMode: (mode: ViewMode) => void;

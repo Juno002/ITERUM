@@ -154,11 +154,6 @@ export function ListView({ tasks, onToggle, onDelete, onEdit }: ListViewProps) {
                             {task.type}
                           </span>
                         )}
-                        {task.migrated && (
-                          <span className="bg-accent-secondary/10 text-accent-secondary border-accent-secondary/20 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-                            retrasado
-                          </span>
-                        )}
                       </div>
 
                       {task.description && (

@@ -45,14 +45,13 @@ export function useDayClosure() {
 
     const summary = 'Día cerrado con éxito.';
 
-    // 1. Migrate uncompleted tasks
+    // Move open tasks forward so the next day starts with a clean, local queue.
     const todayTasks = tasks.filter(
       (t) => format(t.date, 'yyyy-MM-dd') === dateStr && !t.completed,
     );
     todayTasks.forEach((t) => {
       updateTask(t.id, {
         date: addDays(t.date, 1),
-        migrated: true,
       });
     });
 
